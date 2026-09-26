@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Alert, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
@@ -102,6 +102,34 @@ export function FindVetScreen() {
     initializeLocation();
   }, []);
 
+  const handleCall = (phone?: string) => {
+    if (!phone) {
+      Alert.alert('No phone number', 'This partner does not have a phone number available.');
+      return;
+    }
+    Linking.openURL(`tel:${phone}`).catch(() => {
+      Alert.alert('Error', 'Could not open phone dialer');
+    });
+  };
+
+  const handleOpenMap = (name: string, latitude?: number, longitude?: number, address?: string) => {
+    if (!latitude || !longitude) {
+      Alert.alert('No location', 'Location data not available for this partner.');
+      return;
+    }
+
+    const label = encodeURIComponent(name);
+    const query = encodeURIComponent(address || `${latitude},${longitude}`);
+
+    const url = Platform.OS === 'ios'
+      ? `maps://maps.apple.com/?address=${label}&ll=${latitude},${longitude}&q=${label}`
+      : `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Error', 'Could not open maps');
+    });
+  };
+
   const getCategoryEmoji = (category: string) => {
     const emojis: Record<string, string> = {
       clinic: '🏥',
@@ -178,10 +206,16 @@ export function FindVetScreen() {
             </View>
 
             <View style={styles.featuredActions}>
-              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.primary }]}>
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: colors.primary }]}
+                onPress={() => handleCall(featured.phone)}
+              >
                 <Text style={styles.actionBtnText}>📞 Call</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.actionBtn, { backgroundColor: colors.secondary }]}>
+              <TouchableOpacity
+                style={[styles.actionBtn, { backgroundColor: colors.secondary }]}
+                onPress={() => handleOpenMap(featured.name, featured.latitude, featured.longitude, featured.address)}
+              >
                 <Text style={styles.actionBtnText}>🗺️ Map</Text>
               </TouchableOpacity>
             </View>
@@ -200,6 +234,7 @@ export function FindVetScreen() {
               <TouchableOpacity
                 key={partner.id}
                 style={[styles.partnerCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                onPress={() => handleOpenMap(partner.name, partner.latitude, partner.longitude, partner.address)}
               >
                 <View style={[styles.partnerLogo, { backgroundColor: colors.backgroundElement }]}>
                   <Text style={styles.partnerEmoji}>{getCategoryEmoji(partner.category)}</Text>
