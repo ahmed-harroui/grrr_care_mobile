@@ -8,7 +8,6 @@ export function AppHeader({ colors }: AppHeaderProps) {
   return (
     <View style={[styles.banner, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
       <Text style={[styles.logo, { color: colors.primary }]}>🐾 GRRR Care</Text>
-      <Text style={[styles.tagline, { color: colors.textSecondary }]}>Pet Care Companion</Text>
     </View>
   );
 }
@@ -16,14 +15,13 @@ export function AppHeader({ colors }: AppHeaderProps) {
 const styles = StyleSheet.create({
   banner: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 8,
     borderBottomWidth: 1,
   },
   logo: {
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    marginBottom: 2,
+    fontSize: 14,
+    fontWeight: '700',
+    letterSpacing: -0.3,
   },
   tagline: {
     fontSize: 12,
