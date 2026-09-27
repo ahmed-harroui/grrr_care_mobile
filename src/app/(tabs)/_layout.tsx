@@ -1,7 +1,7 @@
 import { Tabs } from 'expo-router';
 import { useColorScheme, Text } from 'react-native';
 import { Colors } from '@/constants/theme';
-import { CustomTabBar } from '@/components/CustomTabBar';
+import { FloatingTabBar } from '@/components/FloatingTabBar';
 
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
@@ -14,8 +14,11 @@ export default function TabsLayout() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
         headerShown: false,
+        tabBarStyle: {
+          display: 'none',
+        },
       }}
-      tabBar={(props) => <CustomTabBar {...props} />}
+      tabBar={(props) => <FloatingTabBar {...props} />}
     >
       <Tabs.Screen
         name="index"
