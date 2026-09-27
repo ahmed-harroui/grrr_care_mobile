@@ -6,6 +6,8 @@ interface GRRRBannerProps {
   subtitle?: string;
 }
 
+const grrrLogo = require('../../assets/logo/grrrr.png');
+
 export function GRRRBanner({ title, subtitle }: GRRRBannerProps) {
   const { colors } = useTheme();
 
@@ -21,7 +23,7 @@ export function GRRRBanner({ title, subtitle }: GRRRBannerProps) {
     >
       <View style={styles.content}>
         <Image
-          source={{ uri: 'file:///./assets/logo/grrrr.png' }}
+          source={grrrLogo}
           style={styles.logo}
         />
         <View style={styles.text}>
