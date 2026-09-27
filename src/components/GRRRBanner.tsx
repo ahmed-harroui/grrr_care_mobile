@@ -21,7 +21,7 @@ export function GRRRBanner({ title, subtitle }: GRRRBannerProps) {
     >
       <View style={styles.content}>
         <Image
-          source={require('../../assets/logo/grrrr.png')}
+          source={{ uri: 'file:///./assets/logo/grrrr.png' }}
           style={styles.logo}
         />
         <View style={styles.text}>
