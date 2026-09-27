@@ -178,18 +178,19 @@ export function FindVetScreen() {
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <View style={styles.headerTop}>
+        <View style={styles.headerContent}>
           <View style={styles.headerText}>
-            <Text style={[styles.greeting, { color: colors.text }]}>Find a Partner 🏥</Text>
+            <Text style={[styles.greeting, { color: colors.text }]}>Find a Partner</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              {userLocation?.city ? `Trusted clinics and services in ${userLocation.city}` : 'Trusted clinics and services for your pet'}
+              {userLocation?.city ? `📍 ${userLocation.city}` : '🐾 Near you'}
             </Text>
           </View>
           <TouchableOpacity
-            style={[styles.toggleBtn, { backgroundColor: colors.primary }]}
+            style={[styles.mapBtn, { backgroundColor: colors.primary }]}
             onPress={() => setViewMode('map')}
+            activeOpacity={0.7}
           >
-            <Text style={styles.toggleBtnText}>🗺️</Text>
+            <Text style={styles.mapBtnText}>🗺️</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -307,13 +308,22 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centerContent: { justifyContent: 'center', alignItems: 'center' },
 
-  header: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 24,
+  },
+  headerContent: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    gap: 16
+  },
   headerText: { flex: 1 },
 
   mapHeader: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -321,10 +331,24 @@ const styles = StyleSheet.create({
   },
   mapTitle: { flex: 1, fontSize: 14, fontWeight: '600' },
 
+  mapBtn: {
+    width: 50,
+    height: 50,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  mapBtnText: { fontSize: 24 },
+
   toggleBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   toggleBtnText: { fontSize: 16, fontWeight: '600', color: 'white' },
-  greeting: { fontSize: 28, fontWeight: '700', marginBottom: 4 },
-  subtitle: { fontSize: 14, fontWeight: '500' },
+  greeting: { fontSize: 32, fontWeight: '800', marginBottom: 8, letterSpacing: -0.5 },
+  subtitle: { fontSize: 15, fontWeight: '500', lineHeight: 20 },
 
   sectionLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 10 },
 
