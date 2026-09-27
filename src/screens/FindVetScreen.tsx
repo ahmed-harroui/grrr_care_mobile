@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
+import { PartnersMapView } from './PartnersMapView';
 
 interface Partner {
   id: string;
@@ -26,6 +27,7 @@ export function FindVetScreen() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; city?: string } | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   const calculateDistance = (lat1: number, lon1: number, lat2?: number, lon2?: number): number | undefined => {
     if (!lat2 || !lon2) return undefined;
@@ -47,6 +49,8 @@ export function FindVetScreen() {
         grrrCareApi.getFeaturedPartner(),
         grrrCareApi.getAllPartners(),
       ]);
+
+      console.log('Featured:', featuredData?.name, 'Partners:', allPartners.length, 'User location:', userLocation?.city);
 
       let enhancedPartners = allPartners;
       if (userLocation) {
@@ -150,14 +154,45 @@ export function FindVetScreen() {
     );
   }
 
+  // Map view
+  if (viewMode === 'map') {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.mapHeader, { backgroundColor: colors.card }]}>
+          <TouchableOpacity
+            style={[styles.toggleBtn, { backgroundColor: colors.primary }]}
+            onPress={() => setViewMode('list')}
+          >
+            <Text style={styles.toggleBtnText}>📋 List</Text>
+          </TouchableOpacity>
+        </View>
+        <PartnersMapView
+          partners={partners}
+          userLocation={userLocation || undefined}
+          onPartnerPress={(partner) => handleOpenMap(partner.name, partner.latitude, partner.longitude, partner.address)}
+        />
+      </View>
+    );
+  }
+
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <Text style={[styles.greeting, { color: colors.text }]}>Find a Partner 🏥</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-          {userLocation?.city ? `Trusted clinics and services in ${userLocation.city}` : 'Trusted clinics and services for your pet'}
-        </Text>
+        <View style={styles.headerTop}>
+          <View style={styles.headerText}>
+            <Text style={[styles.greeting, { color: colors.text }]}>Find a Partner 🏥</Text>
+            <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
+              {userLocation?.city ? `Trusted clinics and services in ${userLocation.city}` : 'Trusted clinics and services for your pet'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={[styles.toggleBtn, { backgroundColor: colors.primary }]}
+            onPress={() => setViewMode('map')}
+          >
+            <Text style={styles.toggleBtnText}>🗺️</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Featured Partner */}
@@ -273,7 +308,20 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   centerContent: { justifyContent: 'center', alignItems: 'center' },
 
+  mapHeader: {
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+
   header: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
+  headerText: { flex: 1 },
+
+  toggleBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  toggleBtnText: { fontSize: 16, fontWeight: '600', color: 'white' },
   greeting: { fontSize: 28, fontWeight: '700', marginBottom: 4 },
   subtitle: { fontSize: 14, fontWeight: '500' },
 
