@@ -3,13 +3,16 @@ import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet
 import { useRouter } from 'expo-router';
 import { usePetSelector } from '../../context/PetSelectorContext';
 import { useTheme } from '../../context/ThemeContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { grrrCareApi } from '../../lib/grrrr-care-api';
 import { AppHeader } from '../../components/AppHeader';
+import { AnimatedCard } from '../../components/AnimatedCard';
 
 export default function HomeScreen() {
   const router = useRouter();
   const { selectedPetId, selectPet } = usePetSelector();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const [pet, setPet] = useState<any>(null);
   const [pets, setPets] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
@@ -67,14 +70,14 @@ export default function HomeScreen() {
       <AppHeader colors={colors} />
       <ScrollView style={{ flex: 1, backgroundColor: colors.background }} showsVerticalScrollIndicator={false}>
       {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.background }]}>
-        <Text style={[styles.greeting, { color: colors.text }]}>Good morning! 👋</Text>
-        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>How are your furry friends doing today?</Text>
-      </View>
+      <AnimatedCard style={[styles.header, { backgroundColor: colors.background }]}>
+        <Text style={[styles.greeting, { color: colors.text }]}>{t('home.greeting')}</Text>
+        <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('home.subtitle')}</Text>
+      </AnimatedCard>
 
       {/* Pet Selector */}
-      <View style={styles.petSelectorSection}>
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>WHO ARE WE CARING FOR?</Text>
+      <AnimatedCard style={styles.petSelectorSection} delay={100}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('home.whoAreCaring')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.petScroll}>
           {pets.map(p => (
             <TouchableOpacity
@@ -146,8 +149,8 @@ export default function HomeScreen() {
       )}
 
       {/* Quick Actions */}
-      <View style={styles.actionsSection}>
-        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>QUICK ACTIONS</Text>
+      <AnimatedCard style={styles.actionsSection} delay={200}>
+        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('home.quickActions')}</Text>
 
         <View style={styles.actionsGrid}>
           {/* Ask GRRR - Pink */}
@@ -188,9 +191,9 @@ export default function HomeScreen() {
 
       {/* Recent Activity */}
       {summary && (
-        <View style={styles.activitySection}>
+        <AnimatedCard style={styles.activitySection} delay={300}>
           <View style={styles.activityHeader}>
-            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>RECENT ACTIVITY</Text>
+            <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('home.recentActivity')}</Text>
           </View>
 
           <View style={[styles.activityCard, { backgroundColor: colors.cardSecondary, borderLeftColor: colors.secondary, borderLeftWidth: 4 }]}>
@@ -208,7 +211,7 @@ export default function HomeScreen() {
               <Text style={[styles.activityValue, { color: colors.textSecondary }]}>{summary.medications} active</Text>
             </View>
           </View>
-        </View>
+        </AnimatedCard>
       )}
 
       <View style={{ height: 80 }} />
