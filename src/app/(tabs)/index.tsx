@@ -10,6 +10,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { grrrCareApi } from '../../lib/grrrr-care-api';
 import { AppHeader } from '../../components/AppHeader';
 import { AnimatedCard } from '../../components/AnimatedCard';
+import { HealthBadge, HealthScoreSection } from '../../components/HealthScore';
+import { getPetHealthScore, type HealthScoreResult } from '../../lib/health-score';
 
 const STORE_URL = 'https://grrrr-store-89il.vercel.app/';
 
@@ -24,11 +26,12 @@ export default function HomeScreen() {
   const router = useRouter();
   const { selectedPetId, selectPet } = usePetSelector();
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const { user } = useAuth();
   const [pet, setPet] = useState<any>(null);
   const [pets, setPets] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
+  const [health, setHealth] = useState<HealthScoreResult | null>(null);
   const [loading, setLoading] = useState(true);
 
   const loadPets = async () => {
@@ -54,6 +57,7 @@ export default function HomeScreen() {
       ]);
       setPet(petData);
       setSummary(healthData);
+      setHealth(petData ? await getPetHealthScore(petData).catch(() => null) : null);
     } catch (error) {
       console.error('Error:', error);
     } finally {
@@ -136,36 +140,11 @@ export default function HomeScreen() {
                 {pet.age} years · {pet.weight} kg
               </Text>
             </View>
-            <View style={[styles.healthBadge, { backgroundColor: colors.success }]}>
-              <Text style={styles.healthBadgeText}>●</Text>
-              <Text style={styles.healthBadgeLabel}>Healthy</Text>
-            </View>
+            <HealthBadge result={health} lang={language} colors={colors} />
           </View>
 
-          {/* Health Score */}
-          <View style={[styles.healthScoreSection, { borderTopColor: colors.border }]}>
-            <View style={styles.scoreRow}>
-              <Text style={[styles.scoreLabel, { color: colors.textSecondary }]}>Health Score</Text>
-              <Text style={[styles.scoreValue, { color: colors.primary }]}>92%</Text>
-            </View>
-            <View style={[styles.scoreBar, { backgroundColor: colors.backgroundElement }]}>
-              <View
-                style={[
-                  styles.scoreBarFill,
-                  { backgroundColor: colors.secondary, width: '92%' }
-                ]}
-              />
-            </View>
-          </View>
-
-          {/* Timeline */}
-          <View style={[styles.timelineSection, { borderTopColor: colors.border }]}>
-            <Text style={[styles.timelineLabel, { color: colors.textSecondary }]}>LAST CHECK-UP</Text>
-            <View style={styles.timelineItems}>
-              <View style={[styles.timelineDot, { backgroundColor: colors.secondary }]} />
-              <Text style={[styles.timelineDate, { color: colors.text }]}>Mar 15, 2025</Text>
-            </View>
-          </View>
+          {/* Health follow-up score, computed from the pet's records and its species/age profile */}
+          <HealthScoreSection result={health} lastVisit={summary?.lastVetVisit ?? null} lang={language} colors={colors} />
         </View>
       )}
 
@@ -260,22 +239,6 @@ const styles = StyleSheet.create({
   petNameBig: { fontSize: 22, fontWeight: '700', marginBottom: 4 },
   petBreedBig: { fontSize: 14, marginBottom: 2 },
   petDetails: { fontSize: 12 },
-  healthBadge: { paddingVertical: 6, paddingHorizontal: 10, borderRadius: 8, flexDirection: 'row', alignItems: 'center', gap: 6 },
-  healthBadgeText: { fontSize: 12, color: 'white', fontWeight: '700' },
-  healthBadgeLabel: { fontSize: 12, color: 'white', fontWeight: '600' },
-
-  healthScoreSection: { borderTopWidth: 1, paddingTop: 16, marginBottom: 16 },
-  scoreRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
-  scoreLabel: { fontSize: 12, fontWeight: '600' },
-  scoreValue: { fontSize: 18, fontWeight: '700' },
-  scoreBar: { height: 6, borderRadius: 3, overflow: 'hidden' },
-  scoreBarFill: { height: '100%', borderRadius: 3 },
-
-  timelineSection: { borderTopWidth: 1, paddingTop: 12 },
-  timelineLabel: { fontSize: 11, fontWeight: '700', marginBottom: 8, letterSpacing: 0.5 },
-  timelineItems: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  timelineDot: { width: 10, height: 10, borderRadius: 5 },
-  timelineDate: { fontSize: 13, fontWeight: '500' },
 
   actionsSection: { paddingHorizontal: 20, marginBottom: 28 },
   askCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, borderRadius: 22, marginBottom: 12, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6 },

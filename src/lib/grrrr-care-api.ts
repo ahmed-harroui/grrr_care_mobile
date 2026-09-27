@@ -48,13 +48,25 @@ export interface PetDocumentFields {
   notes?: string | null;
   file_path?: string | null;
   file_mime?: string | null;
+  file_name?: string | null;
+  file_size?: number | null;
 }
+
+// Demo mode keeps picked files on the device instead of uploading them
+const isLocalUri = (path: string) => /^(file|content|data|blob|ph):/.test(path);
 
 export interface PetDocument extends PetDocumentFields {
   id: string;
   pet_id: string;
   created_at: string;
+  // Written by the grrr-doc-read Edge Function, never by the app
+  ai_summary?: string | null;
+  ai_summary_status?: 'done' | 'unsupported' | 'failed' | null;
+  ai_summary_path?: string | null;
 }
+
+// A file is waiting to be read by the assistant when its summary was made from another file (or not yet)
+export const isAwaitingRead = (doc: PetDocument) => !!doc.file_path && doc.ai_summary_path !== doc.file_path;
 
 const demoDocuments: PetDocument[] = [];
 
@@ -201,30 +213,37 @@ export const grrrCareApi = {
     }
   },
 
+  // Has the assistant read the new or replaced files once (Edge Function grrr-doc-read), so chat never resends them
+  async readPetDocumentFiles(petId: string, language: string): Promise<{ remaining: number }> {
+    if (demoMode) return { remaining: 0 };
+    const { data, error } = await supabase.functions.invoke('grrr-doc-read', { body: { petId, language } });
+    if (error) throw error;
+    return data;
+  },
+
   async removeDocumentFile(filePath: string) {
-    if (demoMode || filePath.startsWith('data:')) return;
+    if (demoMode || isLocalUri(filePath)) return;
     const { error } = await supabase.storage.from('pet-documents').remove([filePath]);
     if (error) throw error;
   },
 
   // Returns the storage path (not a URL): the bucket is private, use getDocumentFileUrl to view it
-  async uploadDocumentFile(ownerId: string, base64: string, mimeType = 'image/jpeg') {
+  async uploadDocumentFile(ownerId: string, file: { uri: string; bytes: ArrayBuffer; mimeType: string; name: string }) {
     if (demoMode) {
-      return `data:${mimeType};base64,${base64}`;
+      return file.uri;
     }
 
-    const ext = mimeType.split('/')[1] || 'jpg';
+    const ext = file.name.includes('.') ? file.name.split('.').pop()!.toLowerCase() : file.mimeType.split('/')[1] || 'bin';
     const path = `${ownerId}/${Date.now()}.${ext}`;
-    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
     const { error } = await supabase.storage
       .from('pet-documents')
-      .upload(path, bytes, { contentType: mimeType, upsert: false });
+      .upload(path, file.bytes, { contentType: file.mimeType, upsert: false });
     if (error) throw error;
     return path;
   },
 
   async getDocumentFileUrl(filePath: string) {
-    if (filePath.startsWith('data:')) return filePath;
+    if (isLocalUri(filePath)) return filePath;
     const { data, error } = await supabase.storage.from('pet-documents').createSignedUrl(filePath, 60 * 60);
     if (error) throw error;
     return data.signedUrl;

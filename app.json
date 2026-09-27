@@ -38,7 +38,16 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "GRRR Care uses your photos for your pet's picture and to attach official documents.",
+          "cameraPermission": "GRRR Care uses the camera to take your pet's picture and scan official documents.",
+          "microphonePermission": false
+        }
+      ],
+      "expo-document-picker"
     ],
     "experiments": {
       "typedRoutes": true,

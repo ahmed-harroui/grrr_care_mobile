@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import {
   KeyboardTypeOptions,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as DocumentPicker from 'expo-document-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import {
@@ -23,7 +24,10 @@ import {
   DocumentType,
   PetDocument,
   PetDocumentFields,
+  isAwaitingRead,
 } from '../lib/grrrr-care-api';
+import { MAX_DOCUMENT_BYTES, fileIcon, fileKind, formatSize, readFileBytes } from '../lib/document-files';
+import { DocumentPreview } from './DocumentPreview';
 
 const DOC_ICONS: Record<DocumentType, string> = {
   passport: '🪪',
@@ -39,6 +43,22 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const str = (v: unknown) => (v === null || v === undefined ? '' : String(v));
 const orNull = (v: string) => (v.trim() ? v.trim() : null);
 
+interface PickedFile {
+  uri: string;
+  name: string;
+  mimeType: string;
+  size?: number;
+  webFile?: Blob | null;
+}
+
+interface PreviewTarget {
+  url: string;
+  mimeType?: string | null;
+  name: string;
+}
+
+const displayName = (doc: PetDocument) => doc.file_name || doc.file_path?.split('/').pop() || 'document';
+
 interface PetDocumentsProps {
   petId: string;
   ownerId: string;
@@ -46,10 +66,12 @@ interface PetDocumentsProps {
 
 export function PetDocuments({ petId, ownerId }: PetDocumentsProps) {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [documents, setDocuments] = useState<PetDocument[] | null>(null);
   // undefined = closed, null = new document, otherwise the document being edited
   const [editing, setEditing] = useState<PetDocument | null | undefined>(undefined);
+  const [preview, setPreview] = useState<PreviewTarget | null>(null);
+  const [previewLoading, setPreviewLoading] = useState<string | null>(null);
 
   const load = useCallback(() => {
     grrrCareApi
@@ -63,8 +85,37 @@ export function PetDocuments({ petId, ownerId }: PetDocumentsProps) {
 
   useEffect(load, [load]);
 
+  // New or replaced files are read once by the assistant in the background; each file is tried once per visit
+  const attemptedReads = useRef(new Set<string>());
+  const [reading, setReading] = useState(false);
+  useEffect(() => {
+    const toRead = (documents ?? []).filter(d => isAwaitingRead(d) && !attemptedReads.current.has(d.file_path!));
+    if (!toRead.length) return;
+    toRead.forEach(d => attemptedReads.current.add(d.file_path!));
+    setReading(true);
+    grrrCareApi
+      .readPetDocumentFiles(petId, language)
+      .then(() => grrrCareApi.getPetDocuments(petId))
+      .then(setDocuments)
+      .catch(error => console.warn('Document read error:', error))
+      .finally(() => setReading(false));
+  }, [documents, petId, language]);
+
   const typeLabel = (type: DocumentType) => t(`documents.types.${type}`);
   const isExpired = (doc: PetDocument) => !!doc.expires_on && doc.expires_on < new Date().toISOString().slice(0, 10);
+
+  const quickLook = async (doc: PetDocument) => {
+    if (!doc.file_path) return;
+    setPreviewLoading(doc.id);
+    try {
+      const url = await grrrCareApi.getDocumentFileUrl(doc.file_path);
+      setPreview({ url, mimeType: doc.file_mime, name: displayName(doc) });
+    } catch (error: any) {
+      Alert.alert(t('documents.openError'), error?.message);
+    } finally {
+      setPreviewLoading(null);
+    }
+  };
 
   return (
     <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
@@ -92,15 +143,32 @@ export function PetDocuments({ petId, ownerId }: PetDocumentsProps) {
                 {doc.title || typeLabel(doc.doc_type)}
               </Text>
               <Text style={[styles.docMeta, { color: colors.textSecondary }]} numberOfLines={1}>
-                {[doc.title ? typeLabel(doc.doc_type) : null, doc.document_number, doc.file_path ? '📎' : null]
-                  .filter(Boolean)
-                  .join(' · ') || t('documents.noDetails')}
+                {[doc.title ? typeLabel(doc.doc_type) : null, doc.document_number].filter(Boolean).join(' · ') ||
+                  t('documents.noDetails')}
               </Text>
+              {!!doc.expires_on && (
+                <Text style={[styles.expiry, { color: isExpired(doc) ? '#D64545' : colors.textTertiary }]}>
+                  {isExpired(doc) ? t('documents.expired') : `${t('documents.expiresOn')} ${doc.expires_on}`}
+                </Text>
+              )}
+              {isAwaitingRead(doc) && reading ? (
+                <Text style={[styles.readStatus, { color: colors.textTertiary }]}>⏳ {t('documents.reading')}</Text>
+              ) : !isAwaitingRead(doc) && doc.ai_summary_status === 'done' ? (
+                <Text style={[styles.readStatus, { color: colors.primary }]}>✓ {t('documents.readByGrrr')}</Text>
+              ) : null}
             </View>
-            {!!doc.expires_on && (
-              <Text style={[styles.expiry, { color: isExpired(doc) ? '#D64545' : colors.textTertiary }]}>
-                {isExpired(doc) ? t('documents.expired') : doc.expires_on}
-              </Text>
+            {!!doc.file_path && (
+              <TouchableOpacity
+                onPress={() => quickLook(doc)}
+                hitSlop={8}
+                style={[styles.eyeBtn, { backgroundColor: colors.card, borderColor: colors.border }]}
+              >
+                {previewLoading === doc.id ? (
+                  <ActivityIndicator color={colors.primary} size="small" />
+                ) : (
+                  <Text style={styles.eyeIcon}>👁️</Text>
+                )}
+              </TouchableOpacity>
             )}
             <Text style={[styles.chevron, { color: colors.textTertiary }]}>›</Text>
           </TouchableOpacity>
@@ -125,6 +193,10 @@ export function PetDocuments({ petId, ownerId }: PetDocumentsProps) {
           />
         )}
       </Modal>
+
+      <Modal visible={!!preview} animationType="slide" onRequestClose={() => setPreview(null)}>
+        {preview && <DocumentPreview {...preview} onClose={() => setPreview(null)} />}
+      </Modal>
     </View>
   );
 }
@@ -147,9 +219,10 @@ function DocumentEditor({ petId, ownerId, document, onClose }: DocumentEditorPro
   const [expiresOn, setExpiresOn] = useState(str(document?.expires_on));
   const [issuer, setIssuer] = useState(str(document?.issuer));
   const [notes, setNotes] = useState(str(document?.notes));
-  const [file, setFile] = useState<{ uri: string; base64: string; mimeType: string } | null>(null);
+  const [file, setFile] = useState<PickedFile | null>(null);
   const [removeFile, setRemoveFile] = useState(false);
   const [existingUrl, setExistingUrl] = useState<string | null>(null);
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -160,7 +233,16 @@ function DocumentEditor({ petId, ownerId, document, onClose }: DocumentEditorPro
       .catch(error => console.warn('Document file URL error:', error));
   }, [document?.file_path]);
 
-  const pickFile = async (source: 'camera' | 'library') => {
+  const acceptFile = (picked: PickedFile) => {
+    if (picked.size && picked.size > MAX_DOCUMENT_BYTES) {
+      Alert.alert(t('documents.fileTooLarge'));
+      return;
+    }
+    setFile(picked);
+    setRemoveFile(false);
+  };
+
+  const pickImage = async (source: 'camera' | 'library') => {
     const permission =
       source === 'camera'
         ? await ImagePicker.requestCameraPermissionsAsync()
@@ -169,15 +251,35 @@ function DocumentEditor({ petId, ownerId, document, onClose }: DocumentEditorPro
       Alert.alert(t('documents.filePermission'));
       return;
     }
-    const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.7, base64: true };
+    const options: ImagePicker.ImagePickerOptions = { mediaTypes: ['images'], quality: 0.7 };
     const result =
       source === 'camera'
         ? await ImagePicker.launchCameraAsync(options)
         : await ImagePicker.launchImageLibraryAsync(options);
     const asset = result.canceled ? null : result.assets[0];
-    if (asset?.base64) {
-      setFile({ uri: asset.uri, base64: asset.base64, mimeType: asset.mimeType || 'image/jpeg' });
-      setRemoveFile(false);
+    if (asset) {
+      acceptFile({
+        uri: asset.uri,
+        name: asset.fileName || 'scan.jpg',
+        mimeType: asset.mimeType || 'image/jpeg',
+        size: asset.fileSize,
+        webFile: asset.file,
+      });
+    }
+  };
+
+  // PDFs, Word, scans from the Files app / Google Drive...
+  const pickDocument = async () => {
+    const result = await DocumentPicker.getDocumentAsync({ type: '*/*', copyToCacheDirectory: true });
+    const asset = result.canceled ? null : result.assets[0];
+    if (asset) {
+      acceptFile({
+        uri: asset.uri,
+        name: asset.name,
+        mimeType: asset.mimeType || 'application/octet-stream',
+        size: asset.size,
+        webFile: asset.file,
+      });
     }
   };
 
@@ -203,11 +305,20 @@ function DocumentEditor({ petId, ownerId, document, onClose }: DocumentEditorPro
         notes: orNull(notes),
       };
       if (file) {
-        fields.file_path = await grrrCareApi.uploadDocumentFile(ownerId, file.base64, file.mimeType);
+        const bytes = await readFileBytes(file.uri, file.webFile);
+        if (bytes.byteLength > MAX_DOCUMENT_BYTES) {
+          Alert.alert(t('documents.fileTooLarge'));
+          return;
+        }
+        fields.file_path = await grrrCareApi.uploadDocumentFile(ownerId, { ...file, bytes });
         fields.file_mime = file.mimeType;
+        fields.file_name = file.name;
+        fields.file_size = bytes.byteLength;
       } else if (removeFile) {
         fields.file_path = null;
         fields.file_mime = null;
+        fields.file_name = null;
+        fields.file_size = null;
       }
       await grrrCareApi.savePetDocument(petId, fields, document?.id);
       if ((file || removeFile) && document?.file_path) {
@@ -216,7 +327,11 @@ function DocumentEditor({ petId, ownerId, document, onClose }: DocumentEditorPro
       onClose(true);
     } catch (error: any) {
       const missingTable = error?.code === '42P01' || error?.code === 'PGRST205';
-      Alert.alert(t('documents.saveError'), missingTable ? t('documents.dbNotReady') : error?.message);
+      const missingColumn = error?.code === 'PGRST204';
+      Alert.alert(
+        t('documents.saveError'),
+        missingTable || missingColumn ? t('documents.dbNotReady') : error?.message
+      );
     } finally {
       setSaving(false);
     }
@@ -265,8 +380,25 @@ function DocumentEditor({ petId, ownerId, document, onClose }: DocumentEditorPro
     </View>
   );
 
-  const previewUri = file?.uri ?? (removeFile ? null : existingUrl);
-  const hasFile = !!file || (!!document?.file_path && !removeFile);
+  // What the file card shows: the newly picked file, else the saved one (unless removed)
+  const current: (PreviewTarget & { size?: number | null }) | null = file
+    ? { url: file.uri, mimeType: file.mimeType, name: file.name, size: file.size }
+    : document?.file_path && !removeFile
+      ? existingUrl
+        ? { url: existingUrl, mimeType: document.file_mime, name: displayName(document), size: document.file_size }
+        : null
+      : null;
+  const waitingForUrl = !file && !removeFile && !!document?.file_path && !existingUrl;
+  const currentKind = current ? fileKind(current.mimeType, current.name) : null;
+
+  const sourceBtn = (label: string, onPress: () => void) => (
+    <TouchableOpacity
+      style={[styles.fileBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
+      onPress={onPress}
+    >
+      <Text style={[styles.fileBtnText, { color: colors.text }]}>{label}</Text>
+    </TouchableOpacity>
+  );
 
   return (
     <KeyboardAvoidingView
@@ -327,23 +459,36 @@ function DocumentEditor({ petId, ownerId, document, onClose }: DocumentEditorPro
         {input(t('documents.notes'), notes, setNotes, { multiline: true })}
 
         <Text style={[styles.label, { color: colors.textSecondary }]}>{t('documents.file')}</Text>
-        {previewUri && <Image source={{ uri: previewUri }} style={styles.preview} resizeMode="contain" />}
-        {hasFile && !previewUri && <ActivityIndicator color={colors.primary} style={styles.loader} />}
+        {waitingForUrl && <ActivityIndicator color={colors.primary} style={styles.loader} />}
+        {current && (
+          <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={() => setPreviewOpen(true)}
+            style={[styles.fileCard, { borderColor: colors.border, backgroundColor: colors.card }]}
+          >
+            {currentKind === 'image' ? (
+              <Image source={{ uri: current.url }} style={styles.thumb} resizeMode="cover" />
+            ) : (
+              <View style={[styles.thumb, styles.thumbIcon, { backgroundColor: colors.backgroundElement }]}>
+                <Text style={styles.thumbEmoji}>{fileIcon(currentKind!)}</Text>
+              </View>
+            )}
+            <View style={styles.flex}>
+              <Text style={[styles.fileName, { color: colors.text }]} numberOfLines={2}>{current.name}</Text>
+              <Text style={[styles.fileMeta, { color: colors.textSecondary }]}>
+                {[formatSize(current.size), t('documents.tapToPreview')].filter(Boolean).join(' · ')}
+              </Text>
+            </View>
+            <Text style={styles.eyeIcon}>👁️</Text>
+          </TouchableOpacity>
+        )}
         <View style={styles.row}>
-          <TouchableOpacity
-            style={[styles.fileBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-            onPress={() => pickFile('camera')}
-          >
-            <Text style={[styles.fileBtnText, { color: colors.text }]}>📷 {t('documents.scan')}</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.fileBtn, { borderColor: colors.border, backgroundColor: colors.card }]}
-            onPress={() => pickFile('library')}
-          >
-            <Text style={[styles.fileBtnText, { color: colors.text }]}>🖼️ {t('documents.gallery')}</Text>
-          </TouchableOpacity>
+          {sourceBtn(`📷 ${t('documents.scan')}`, () => pickImage('camera'))}
+          {sourceBtn(`🖼️ ${t('documents.gallery')}`, () => pickImage('library'))}
+          {sourceBtn(`📁 ${t('documents.files')}`, pickDocument)}
         </View>
-        {hasFile && (
+        <Text style={[styles.fileHint, { color: colors.textTertiary }]}>{t('documents.fileHint')}</Text>
+        {(current || waitingForUrl) && (
           <TouchableOpacity
             onPress={() => {
               setFile(null);
@@ -354,12 +499,30 @@ function DocumentEditor({ petId, ownerId, document, onClose }: DocumentEditorPro
           </TouchableOpacity>
         )}
 
+        {/* What the assistant took from the saved file (hidden once the file is replaced or removed) */}
+        {document?.file_path && !file && !removeFile && !isAwaitingRead(document) && document.ai_summary_status && (
+          <View style={[styles.summaryBox, { borderColor: colors.border, backgroundColor: colors.backgroundElement }]}>
+            <Text style={[styles.summaryTitle, { color: colors.text }]}>📖 {t('documents.whatGrrrRead')}</Text>
+            <Text style={[styles.summaryText, { color: colors.textSecondary }]}>
+              {document.ai_summary_status === 'done'
+                ? document.ai_summary
+                : document.ai_summary_status === 'unsupported'
+                  ? t('documents.readUnsupported')
+                  : t('documents.readFailed')}
+            </Text>
+          </View>
+        )}
+
         {document && (
           <TouchableOpacity style={styles.deleteBtn} onPress={confirmDelete}>
             <Text style={styles.deleteText}>{t('documents.delete')}</Text>
           </TouchableOpacity>
         )}
       </ScrollView>
+
+      <Modal visible={previewOpen && !!current} animationType="slide" onRequestClose={() => setPreviewOpen(false)}>
+        {current && <DocumentPreview {...current} onClose={() => setPreviewOpen(false)} />}
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -376,7 +539,13 @@ const styles = StyleSheet.create({
   docIcon: { fontSize: 24 },
   docTitle: { fontSize: 15, fontWeight: '700', marginBottom: 2 },
   docMeta: { fontSize: 12 },
-  expiry: { fontSize: 11, fontWeight: '700' },
+  expiry: { fontSize: 11, fontWeight: '700', marginTop: 2 },
+  readStatus: { fontSize: 11, fontWeight: '600', marginTop: 2 },
+  summaryBox: { borderRadius: 12, borderWidth: 1, padding: 12, marginTop: 12 },
+  summaryTitle: { fontSize: 12, fontWeight: '800', marginBottom: 6 },
+  summaryText: { fontSize: 13, lineHeight: 19 },
+  eyeBtn: { width: 38, height: 38, borderRadius: 19, borderWidth: 1, justifyContent: 'center', alignItems: 'center' },
+  eyeIcon: { fontSize: 18 },
   chevron: { fontSize: 22, fontWeight: '300' },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12, paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1 },
   modalTitle: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '800' },
@@ -390,10 +559,16 @@ const styles = StyleSheet.create({
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   chip: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1 },
   chipText: { fontSize: 13, fontWeight: '600' },
-  row: { flexDirection: 'row', gap: 12 },
-  preview: { width: '100%', height: 220, borderRadius: 12, marginBottom: 12 },
+  row: { flexDirection: 'row', gap: 8 },
+  fileCard: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 10, borderRadius: 14, borderWidth: 1, marginBottom: 12 },
+  thumb: { width: 64, height: 64, borderRadius: 10 },
+  thumbIcon: { justifyContent: 'center', alignItems: 'center' },
+  thumbEmoji: { fontSize: 30 },
+  fileName: { fontSize: 14, fontWeight: '700', marginBottom: 2 },
+  fileMeta: { fontSize: 12 },
   fileBtn: { flex: 1, alignItems: 'center', paddingVertical: 12, borderRadius: 12, borderWidth: 1 },
-  fileBtnText: { fontSize: 14, fontWeight: '700' },
+  fileBtnText: { fontSize: 13, fontWeight: '700' },
+  fileHint: { fontSize: 11, textAlign: 'center', marginTop: 8 },
   removeFile: { color: '#D64545', fontSize: 13, fontWeight: '700', textAlign: 'center', marginTop: 12 },
   deleteBtn: { marginTop: 28, paddingVertical: 14, borderRadius: 14, borderWidth: 1, borderColor: '#D64545', alignItems: 'center' },
   deleteText: { color: '#D64545', fontSize: 15, fontWeight: '800' },

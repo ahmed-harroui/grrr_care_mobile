@@ -40,23 +40,95 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 const list = (v: unknown) => (Array.isArray(v) ? v.join('; ') : '');
+const day = (v: unknown) => (v ? String(v).slice(0, 10) : '');
 
-function petProfile(pet: Record<string, any>) {
-  const lines = [
+const DOC_LABELS: Record<string, string> = {
+  passport: 'Pet passport',
+  microchip_certificate: 'Microchip / ID certificate',
+  adoption: 'Adoption certificate',
+  ownership: 'Ownership document',
+  registration: 'Registration document',
+  import_export: 'Import / export document',
+  other: 'Certificate',
+};
+
+function ageFromBirthday(birthday: string, today: string) {
+  const [by, bm, bd] = birthday.split('-').map(Number);
+  const [ty, tm, td] = today.split('-').map(Number);
+  let months = (ty - by) * 12 + (tm - bm) - (td < bd ? 1 : 0);
+  if (months < 0) return '';
+  const years = Math.floor(months / 12);
+  months %= 12;
+  return years ? `${years} y ${months} mo` : `${months} months`;
+}
+
+interface PetRecords {
+  vaccinations: any[];
+  medications: any[];
+  visits: any[];
+  documents: any[];
+}
+
+// Everything the owner filled in, so the model can answer without asking back.
+// Identifier numbers and owner contact details are left out: they never change an answer.
+function petContext(pet: Record<string, any>, records: PetRecords, today: string) {
+  const birthday = day(pet.birthday);
+  const age = birthday ? ageFromBirthday(birthday, today) : pet.age ? `${pet.age} years` : '';
+  const yesNo = (v: unknown) => (v ? 'yes' : 'no');
+  const profile = [
     `Name: ${pet.pet_name}`,
     `Species: ${pet.species}`,
     pet.breed && `Breed: ${pet.breed}`,
-    pet.age && `Age: ${pet.age} years`,
     pet.gender && `Sex: ${pet.gender === 'F' ? 'female' : pet.gender === 'M' ? 'male' : pet.gender}`,
+    age && `Age: ${age}${birthday ? ` (born ${birthday})` : ''}`,
     pet.weight && `Weight: ${pet.weight} kg`,
-    pet.sterilized != null && `Neutered/spayed: ${pet.sterilized ? 'yes' : 'no'}`,
+    pet.sterilized != null && `Neutered/spayed: ${yesNo(pet.sterilized)}`,
+    pet.color && `Coat/color: ${pet.color}`,
+    pet.distinguishing_marks && `Distinguishing marks: ${pet.distinguishing_marks}`,
+    `Microchipped: ${yesNo(pet.microchip)}`,
+    pet.tattoo && 'Tattooed: yes',
+    pet.registration_number && 'Registered: yes',
     pet.allergies && `Allergies: ${pet.allergies}`,
     pet.care_notes && `Owner notes: ${pet.care_notes}`,
   ];
-  return lines.filter(Boolean).join('\n');
+
+  const vaccines = records.vaccinations.map(v => {
+    const due = day(v.next_due);
+    return `• ${v.vaccine}: given ${day(v.date)}${due ? `, next due ${due}${due < today ? ' (OVERDUE)' : ''}` : ''}`;
+  });
+  const isCurrent = (m: any) => !m.end_date || day(m.end_date) >= today;
+  const meds = records.medications.map(
+    m =>
+      `• ${m.name}${m.dosage ? `, ${m.dosage}` : ''}${m.frequency ? `, ${m.frequency}` : ''} (${
+        isCurrent(m) ? `ongoing since ${day(m.start_date)}` : `${day(m.start_date)} to ${day(m.end_date)}`
+      })${m.notes ? ` - ${m.notes}` : ''}`
+  );
+  const visits = records.visits.map(
+    v => `• ${day(v.date)}${v.reason ? `: ${v.reason}` : ''}${v.diagnosis ? ` - diagnosis: ${v.diagnosis}` : ''}`
+  );
+  const documents = records.documents.map(d => {
+    const expires = day(d.expires_on);
+    const line = `• ${d.title || DOC_LABELS[d.doc_type] || d.doc_type}${d.issued_on ? `, issued ${day(d.issued_on)}` : ''}${
+      expires ? `, expires ${expires}${expires < today ? ' (EXPIRED)' : ''}` : ''
+    }`;
+    // Notes grrr-doc-read took from the attached file, indented under the document
+    const content = d.ai_summary ? `\n  Content of the file:\n${String(d.ai_summary).replace(/^/gm, '    ')}` : '';
+    return line + content;
+  });
+
+  const section = (title: string, lines: string[]) => `${title}\n${lines.join('\n') || '(none recorded)'}`;
+  return [
+    `Today: ${today}`,
+    section('PET PROFILE', profile.filter(Boolean) as string[]),
+    section('VACCINATIONS', vaccines),
+    section('MEDICATIONS (as recorded by the owner or vet)', meds),
+    section('RECENT VET VISITS', visits),
+    section('OFFICIAL DOCUMENTS', documents),
+  ].join('\n\n');
 }
 
-function systemPrompt(pet: Record<string, any>, mode: Mode, lang: Lang, docs: any[], guides: any[]) {
+// Identical for every owner of the same species, so it is cached and billed at ~10% after the first message
+function knowledgePrompt(docs: any[], guides: any[]) {
   const knowledge = docs
     .map(
       (d, i) =>
@@ -77,18 +149,21 @@ function systemPrompt(pet: Record<string, any>, mode: Mode, lang: Lang, docs: an
 Rules:
 - Base your answer on the KNOWLEDGE and EMERGENCY GUIDES below and cite them inline like [1] or [E1]. If they don't cover the question, say so briefly and give only general, safe guidance.
 - You are not a veterinarian: never diagnose, never give medication doses. If the message suggests an emergency (poisoning, breathing trouble, heavy bleeding, collapse, seizures, suspected fracture, not eating or drinking for a long time...), your FIRST sentence must tell the owner to contact a vet or emergency clinic right away.
-- Personalise with the pet profile (species, age, weight, allergies...).
-- Reply in ${lang === 'fr' ? 'French' : 'English'}, in 60 to 150 words. Plain text only: no markdown, no bold, no headings; use "•" for lists.
-- ${MODE_STYLE[mode].replace('{name}', pet.pet_name).replace('{species}', pet.species)}
-
-PET PROFILE
-${petProfile(pet)}
+- The pet's full profile, health records and documents follow at the end. Use them to answer directly: never ask for something they already contain (age, weight, breed, vaccines, treatments...). Ask a follow-up question only when the answer truly depends on something missing, and then ask just one.
+- Point out anything in the records that matters for the question: an overdue vaccine, an ongoing treatment, an allergy, an expired passport for a travel question.
+- Under OFFICIAL DOCUMENTS, "Content of the file" is what was read in the owner's uploaded papers (passport, certificates...). Treat it as the pet's records, with the same weight as the fields above.
+- Plain text only: no markdown, no bold, no headings; use "•" for lists.
 
 KNOWLEDGE
 ${knowledge || '(none for this species)'}
 
 EMERGENCY GUIDES
 ${emergencies || '(none for this species)'}`;
+}
+
+function replyPrompt(pet: Record<string, any>, mode: Mode, lang: Lang) {
+  return `Reply in ${lang === 'fr' ? 'French' : 'English'}, in 60 to 150 words.
+${MODE_STYLE[mode].replace('{name}', pet.pet_name).replace('{species}', pet.species)}`;
 }
 
 // Claude expects alternating turns starting with the user
@@ -150,10 +225,31 @@ Deno.serve(async req => {
   if (used > DAILY_LIMIT) return json({ error: MESSAGES.limit[lang], code: 'daily_limit' }, 429);
 
   const species = String(pet.species || '').toLowerCase();
-  const [{ data: allDocs }, { data: allGuides }] = await Promise.all([
-    admin.from('knowledge_documents').select('title, category, summary, content, key_points, warnings, species'),
-    admin.from('emergency_guides').select('condition, severity, symptoms, immediate_actions, do_not_do, when_to_call_vet, species'),
+  const today = new Date().toISOString().slice(0, 10);
+  // Stable ordering matters: the knowledge block is cached, and any reordering would miss the cache
+  const [{ data: allDocs }, { data: allGuides }, vaccinations, medications, visits, documents] = await Promise.all([
+    admin.from('knowledge_documents').select('title, category, summary, content, key_points, warnings, species').order('title'),
+    admin
+      .from('emergency_guides')
+      .select('condition, severity, symptoms, immediate_actions, do_not_do, when_to_call_vet, species')
+      .order('condition'),
+    admin.from('vaccinations').select('vaccine, date, next_due').eq('pet_id', pet.id).order('date', { ascending: false }).limit(15),
+    admin
+      .from('medications')
+      .select('name, dosage, frequency, start_date, end_date, notes')
+      .eq('pet_id', pet.id)
+      .order('start_date', { ascending: false })
+      .limit(10),
+    admin.from('vet_visits').select('date, reason, diagnosis').eq('pet_id', pet.id).order('date', { ascending: false }).limit(5),
+    // Table comes from migration 010; a missing table just means no documents
+    admin.from('pet_documents').select('doc_type, title, issued_on, expires_on, ai_summary').eq('pet_id', pet.id).order('created_at'),
   ]);
+  const records: PetRecords = {
+    vaccinations: vaccinations.data ?? [],
+    medications: medications.data ?? [],
+    visits: visits.data ?? [],
+    documents: documents.data ?? [],
+  };
   const forSpecies = (rows: any[] | null) => {
     const matching = (rows ?? []).filter(r => Array.isArray(r.species) && r.species.some((s: string) => species.includes(s) || s.includes(species)));
     return matching.length ? matching : rows ?? [];
@@ -170,8 +266,13 @@ Deno.serve(async req => {
     },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 700,
-      system: systemPrompt(pet, mode, lang, docs, guides),
+      max_tokens: 500,
+      // Two cache breakpoints: the shared knowledge (per species), then this pet's context (reused across the chat)
+      system: [
+        { type: 'text', text: knowledgePrompt(docs, guides), cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: petContext(pet, records, today), cache_control: { type: 'ephemeral' } },
+        { type: 'text', text: replyPrompt(pet, mode, lang) },
+      ],
       messages: buildMessages(history, message),
     }),
   });
@@ -182,6 +283,10 @@ Deno.serve(async req => {
   }
 
   const data = await res.json();
+  const u = data.usage ?? {};
+  console.log(
+    `usage input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_write=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens}`
+  );
   const text = (data.content ?? [])
     .filter((b: any) => b.type === 'text')
     .map((b: any) => b.text)
