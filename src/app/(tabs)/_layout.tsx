@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import { useColorScheme, Text } from 'react-native';
 import { Colors } from '@/constants/theme';
+import { CustomTabBar } from '@/components/CustomTabBar';
 
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
@@ -10,14 +11,11 @@ export default function TabsLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: colors.text,
+        tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: colors.background,
-          borderTopColor: colors.backgroundElement,
-        },
         headerShown: false,
       }}
+      tabBar={(props) => <CustomTabBar {...props} />}
     >
       <Tabs.Screen
         name="index"
