@@ -41,3 +41,10 @@ example
 # generated native folders
 /ios
 /android
+
+# contains a hardcoded service_role key
+setup-partners.js
+
+# local dev logs and Supabase CLI state
+*.log
+supabase/.temp/
