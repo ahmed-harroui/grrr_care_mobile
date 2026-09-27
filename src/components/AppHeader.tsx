@@ -15,13 +15,13 @@ export function AppHeader({ colors }: AppHeaderProps) {
 const styles = StyleSheet.create({
   banner: {
     paddingHorizontal: 20,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderBottomWidth: 1,
   },
   logo: {
-    fontSize: 14,
-    fontWeight: '700',
-    letterSpacing: -0.3,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: -0.5,
   },
   tagline: {
     fontSize: 12,
