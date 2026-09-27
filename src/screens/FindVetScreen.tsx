@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
+import { PartnersMapView } from './PartnersMapView';
 
 interface Partner {
   id: string;
@@ -26,6 +27,7 @@ export function FindVetScreen() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; city?: string } | null>(null);
+  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   const calculateDistance = (lat1: number, lon1: number, lat2?: number, lon2?: number): number | undefined => {
     if (!lat2 || !lon2) return undefined;
@@ -152,44 +154,25 @@ export function FindVetScreen() {
     );
   }
 
-  const handleViewAllOnMap = () => {
-    if (partners.length === 0) {
-      Alert.alert('No partners', 'No partners available to view on map');
-      return;
-    }
-
-    const validPartners = partners.filter(p => p.latitude && p.longitude);
-    if (validPartners.length === 0) {
-      Alert.alert('No location data', 'Partners do not have location data');
-      return;
-    }
-
-    const bounds = validPartners.reduce(
-      (acc, p) => ({
-        minLat: Math.min(acc.minLat, p.latitude!),
-        maxLat: Math.max(acc.maxLat, p.latitude!),
-        minLon: Math.min(acc.minLon, p.longitude!),
-        maxLon: Math.max(acc.maxLon, p.longitude!),
-      }),
-      {
-        minLat: validPartners[0].latitude!,
-        maxLat: validPartners[0].latitude!,
-        minLon: validPartners[0].longitude!,
-        maxLon: validPartners[0].longitude!,
-      }
+  // Map view
+  if (viewMode === 'map') {
+    return (
+      <View style={[styles.container, { backgroundColor: colors.background }]}>
+        <View style={[styles.mapHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
+          <TouchableOpacity
+            style={[styles.toggleBtn, { backgroundColor: colors.primary }]}
+            onPress={() => setViewMode('list')}
+          >
+            <Text style={styles.toggleBtnText}>📋 List</Text>
+          </TouchableOpacity>
+          <Text style={[styles.mapTitle, { color: colors.text }]}>
+            {partners.filter(p => p.latitude && p.longitude).length} Partners
+          </Text>
+        </View>
+        <PartnersMapView partners={partners} userLocation={userLocation || undefined} />
+      </View>
     );
-
-    const centerLat = (bounds.minLat + bounds.maxLat) / 2;
-    const centerLon = (bounds.minLon + bounds.maxLon) / 2;
-
-    const url = Platform.OS === 'ios'
-      ? `maps://maps.apple.com/?ll=${centerLat},${centerLon}&q=pet%20services`
-      : `https://www.google.com/maps/search/pet+services/@${centerLat},${centerLon},12z`;
-
-    Linking.openURL(url).catch(() => {
-      Alert.alert('Error', 'Could not open maps');
-    });
-  };
+  }
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
@@ -204,7 +187,7 @@ export function FindVetScreen() {
           </View>
           <TouchableOpacity
             style={[styles.toggleBtn, { backgroundColor: colors.primary }]}
-            onPress={handleViewAllOnMap}
+            onPress={() => setViewMode('map')}
           >
             <Text style={styles.toggleBtnText}>🗺️</Text>
           </TouchableOpacity>
@@ -327,6 +310,16 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
   headerText: { flex: 1 },
+
+  mapHeader: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    borderBottomWidth: 1,
+  },
+  mapTitle: { flex: 1, fontSize: 14, fontWeight: '600' },
 
   toggleBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
   toggleBtnText: { fontSize: 16, fontWeight: '600', color: 'white' },
