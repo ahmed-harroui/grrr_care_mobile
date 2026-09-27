@@ -1,0 +1,915 @@
+[
+  {
+    "id": "universal-vet",
+    "title": "When to contact a veterinarian",
+    "category": "symptoms",
+    "subcategory": "general",
+    "species": [
+      "dog",
+      "cat",
+      "rabbit",
+      "guinea_pig",
+      "hamster",
+      "mouse",
+      "rat",
+      "ferret",
+      "bird",
+      "parrot",
+      "chicken",
+      "reptile",
+      "snake",
+      "turtle_tortoise",
+      "amphibian",
+      "fish"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "emergency",
+    "summary": "Persistent, worsening, severe or unusual changes in behavior, eating, drinking, breathing, movement or elimination deserve veterinary assessment.",
+    "content": "GRRR Care should treat sudden deterioration, significant breathing difficulty, collapse, seizures, severe bleeding, suspected poisoning, inability to urinate, or prolonged refusal to eat as situations needing urgent professional assessment. For non-emergency problems, track onset, duration, changes and relevant records before contacting the veterinary team.",
+    "key_points": [
+      "Observe the change and record when it started.",
+      "Bring medication and health-record information to the veterinarian.",
+      "Use emergency services when the animal is in obvious distress."
+    ],
+    "warnings": [
+      "Do not rely on an AI response to rule out a serious condition.",
+      "Do not delay emergency care while trying home remedies."
+    ],
+    "tags": [
+      "veterinarian",
+      "urgent-care",
+      "symptoms",
+      "safety"
+    ],
+    "source_ids": [
+      "merck_preventive",
+      "fda_med_storage"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "universal-med-safety",
+    "title": "Medication safety at home",
+    "category": "medication",
+    "subcategory": "safety",
+    "species": [
+      "dog",
+      "cat",
+      "rabbit",
+      "guinea_pig",
+      "hamster",
+      "mouse",
+      "rat",
+      "ferret",
+      "bird",
+      "parrot",
+      "chicken",
+      "reptile",
+      "snake",
+      "turtle_tortoise",
+      "amphibian",
+      "fish"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "high",
+    "summary": "Store pet and human medicines securely and use veterinary instructions exactly as labeled.",
+    "content": "Keep medications in labeled original containers, separate human and pet medicines, and keep them out of pets' reach. Do not share one animal's medication with another or change, stop, crush or split medication unless a veterinarian has instructed you to do so. Record current medicines and known reactions in the pet profile.",
+    "key_points": [
+      "Keep an up-to-date medication list.",
+      "Store medicines where curious pets cannot access them.",
+      "Contact a veterinarian or animal poison service after an accidental exposure."
+    ],
+    "warnings": [
+      "Do not recommend human pain medicines as a default pet treatment.",
+      "Do not invent doses from a pet's weight alone."
+    ],
+    "tags": [
+      "medication",
+      "poisoning",
+      "safety",
+      "prescription"
+    ],
+    "source_ids": [
+      "fda_med_storage",
+      "fda_med_errors",
+      "fda_dangerous_items"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "universal-food-hazards",
+    "title": "Common food and household hazards",
+    "category": "nutrition",
+    "subcategory": "safety",
+    "species": [
+      "dog",
+      "cat",
+      "rabbit",
+      "guinea_pig",
+      "hamster",
+      "mouse",
+      "rat",
+      "ferret",
+      "bird",
+      "parrot",
+      "chicken",
+      "reptile",
+      "snake",
+      "turtle_tortoise",
+      "amphibian",
+      "fish"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "high",
+    "summary": "Some foods and household products can be dangerous to pets; the correct answer depends on species and product.",
+    "content": "GRRR Care should avoid blanket 'safe for all pets' claims. Examples of documented hazards include onions, xylitol-containing products, some human medicines, tobacco products, and some foods that can cause obstruction. Questions about a specific food should identify the species and, when relevant, the product and amount.",
+    "key_points": [
+      "Identify the exact species and item.",
+      "Escalate suspected poisoning promptly.",
+      "Keep hazardous products secured."
+    ],
+    "warnings": [
+      "Do not estimate poisoning severity without reliable data.",
+      "Do not induce vomiting unless a veterinarian or poison professional specifically advises it."
+    ],
+    "tags": [
+      "toxicity",
+      "food",
+      "poisoning",
+      "household-hazards"
+    ],
+    "source_ids": [
+      "fda_dangerous_items"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "dog-nutrition",
+    "title": "Dog nutrition basics",
+    "category": "nutrition",
+    "subcategory": "daily-diet",
+    "species": [
+      "dog"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "low",
+    "summary": "Dogs need a nutritionally complete diet suited to life stage, health status and individual needs.",
+    "content": "Recommend complete and balanced commercial diets or a diet formulated with veterinary nutrition guidance. Treats should remain a small part of the overall intake. Diet changes should be gradual when possible, and body condition should be monitored alongside weight.",
+    "key_points": [
+      "Match diet to age and health needs.",
+      "Monitor weight and body condition.",
+      "Change foods gradually."
+    ],
+    "warnings": [
+      "Do not prescribe a homemade diet without nutrition formulation.",
+      "Do not use a generic calorie target as an individualized prescription."
+    ],
+    "tags": [
+      "dog",
+      "nutrition",
+      "weight",
+      "treats"
+    ],
+    "source_ids": [
+      "merck_preventive"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "dog-preventive",
+    "title": "Dog preventive care",
+    "category": "prevention",
+    "subcategory": "wellness",
+    "species": [
+      "dog"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "low",
+    "summary": "Preventive care combines routine health checks, vaccination planning, parasite control, dental care, nutrition and behavior support.",
+    "content": "The schedule should be individualized by age, lifestyle, location and health status. GRRR Care should show vaccination and parasite reminders as prompts to contact or follow the veterinarian's plan rather than as fixed medical prescriptions.",
+    "key_points": [
+      "Keep vaccination records current.",
+      "Track parasite-prevention products and dates.",
+      "Schedule routine veterinary checks."
+    ],
+    "warnings": [
+      "Vaccination schedules vary by jurisdiction and risk.",
+      "Do not present one universal vaccine schedule."
+    ],
+    "tags": [
+      "dog",
+      "vaccination",
+      "parasites",
+      "dental",
+      "wellness"
+    ],
+    "source_ids": [
+      "merck_preventive"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "cat-routine",
+    "title": "Cat routine health care",
+    "category": "prevention",
+    "subcategory": "wellness",
+    "species": [
+      "cat"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "low",
+    "summary": "Cats benefit from routine veterinary care, vaccination planning, parasite control, dental care, nutrition and a safe home environment.",
+    "content": "Adult cats should receive routine veterinary assessment, with frequency adjusted for age and health. Kittens require a more frequent early-life schedule. Older cats or cats with chronic conditions may need closer monitoring.",
+    "key_points": [
+      "Track examinations and vaccination history.",
+      "Monitor appetite, weight, litter-box habits and activity.",
+      "Plan preventive care with a veterinarian."
+    ],
+    "warnings": [
+      "Do not treat a change in litter-box behavior as 'just behavioral' without considering medical causes."
+    ],
+    "tags": [
+      "cat",
+      "wellness",
+      "vaccination",
+      "parasites",
+      "dental"
+    ],
+    "source_ids": [
+      "merck_cat_routine",
+      "merck_preventive"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "cat-nutrition",
+    "title": "Cat nutrition basics",
+    "category": "nutrition",
+    "subcategory": "daily-diet",
+    "species": [
+      "cat"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "low",
+    "summary": "Cats have species-specific nutritional requirements and should receive food formulated to meet those needs.",
+    "content": "Cats require dietary protein and specific nutrients such as taurine. A nutritionally complete commercial cat food is generally preferable to improvised homemade diets unless a veterinary nutrition professional has formulated the diet.",
+    "key_points": [
+      "Use cat-specific complete nutrition.",
+      "Provide fresh water.",
+      "Monitor body condition and appetite."
+    ],
+    "warnings": [
+      "Never assume dog food is nutritionally interchangeable with cat food.",
+      "Escalate persistent appetite loss to a veterinarian."
+    ],
+    "tags": [
+      "cat",
+      "nutrition",
+      "taurine",
+      "hydration"
+    ],
+    "source_ids": [
+      "merck_cat_nutrition"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "rabbit-diet",
+    "title": "Rabbit diet essentials",
+    "category": "nutrition",
+    "subcategory": "hay-greens-pellets",
+    "species": [
+      "rabbit"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "moderate",
+    "summary": "Rabbit diets should be centered on high-fibre hay or grass, with appropriate leafy greens and a measured amount of pellets.",
+    "content": "RSPCA guidance describes a diet made mostly of hay and grass, with a smaller portion of leafy greens and a small amount of pellets or nuggets. Fruit and root vegetables such as carrot are treats rather than the main food. Sudden diet changes can upset the digestive system.",
+    "key_points": [
+      "Provide unlimited good-quality hay/grass.",
+      "Introduce new greens gradually.",
+      "Keep fresh water available."
+    ],
+    "warnings": [
+      "Refusal to eat can be serious in rabbits and should prompt veterinary attention.",
+      "Do not make carrots or fruit the dietary foundation."
+    ],
+    "tags": [
+      "rabbit",
+      "hay",
+      "grass",
+      "greens",
+      "dental",
+      "gut"
+    ],
+    "source_ids": [
+      "rspca_rabbit_diet",
+      "rspca_rabbit_health"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "rabbit-dental",
+    "title": "Rabbit dental warning signs",
+    "category": "symptoms",
+    "subcategory": "dental",
+    "species": [
+      "rabbit"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "high",
+    "summary": "Rabbit teeth grow continuously, so diet and veterinary monitoring are important for dental health.",
+    "content": "Warning signs include reduced appetite, weight loss, drooling, a wet chin, difficulty grooming, watery eyes or a jaw swelling. High-fibre hay and grass support natural tooth wear, but they do not replace veterinary examination when signs are present.",
+    "key_points": [
+      "Track appetite and weight.",
+      "Make hay available every day.",
+      "Arrange veterinary assessment for dental warning signs."
+    ],
+    "warnings": [
+      "Pain may prevent rabbits from eating.",
+      "Do not wait for severe weight loss before seeking care."
+    ],
+    "tags": [
+      "rabbit",
+      "dental",
+      "appetite",
+      "weight-loss"
+    ],
+    "source_ids": [
+      "rspca_rabbit_health",
+      "rspca_rabbit_diet"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "hamster-home",
+    "title": "Hamster housing essentials",
+    "category": "housing",
+    "subcategory": "environment",
+    "species": [
+      "hamster"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "moderate",
+    "summary": "Hamsters need a secure, dry, quiet environment with deep suitable bedding, nesting material and hiding places.",
+    "content": "Provide a safe enclosure with a solid floor, appropriate deep bedding, nesting material and places to hide. Avoid fluffy cotton-like nesting materials that can entangle limbs. Keep the enclosure away from drafts, dampness and excessive disturbance.",
+    "key_points": [
+      "Give adequate depth for digging.",
+      "Provide safe nesting material.",
+      "Spot-clean soiled areas regularly without causing excessive disturbance."
+    ],
+    "warnings": [
+      "Housing needs vary by hamster species and individual behavior.",
+      "Avoid wire floors that can injure feet."
+    ],
+    "tags": [
+      "hamster",
+      "housing",
+      "bedding",
+      "enrichment"
+    ],
+    "source_ids": [
+      "rspca_hamster_home"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "hamster-diet",
+    "title": "Hamster nutrition and monitoring",
+    "category": "nutrition",
+    "subcategory": "daily-diet",
+    "species": [
+      "hamster"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "moderate",
+    "summary": "Hamsters need a balanced, species-appropriate diet and continuous access to clean water.",
+    "content": "A formulated hamster diet can be combined with appropriate small quantities of fresh foods. Avoid abrupt diet changes and monitor food intake and stool quality. Hidden food should not be allowed to spoil.",
+    "key_points": [
+      "Provide fresh water.",
+      "Use a balanced formulated diet.",
+      "Watch for reduced appetite or abnormal droppings."
+    ],
+    "warnings": [
+      "Some foods are unsafe; verify the exact item and species.",
+      "Do not give wet food routinely unless advised by a veterinarian."
+    ],
+    "tags": [
+      "hamster",
+      "nutrition",
+      "water",
+      "stool"
+    ],
+    "source_ids": [
+      "rspca_hamster_diet"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "guinea-pig-diet",
+    "title": "Guinea pig nutrition and vitamin C",
+    "category": "nutrition",
+    "subcategory": "daily-diet",
+    "species": [
+      "guinea_pig"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "moderate",
+    "summary": "Guinea pigs require a high-fibre diet and a reliable dietary source of vitamin C.",
+    "content": "Provide good-quality grass or hay, appropriate guinea-pig pellets and a variety of suitable vegetables/greens. Fresh pellets should be supplied according to manufacturer guidance because vitamin C can degrade over time.",
+    "key_points": [
+      "Hay/grass should be a major part of the diet.",
+      "Provide a fresh source of vitamin C through the diet.",
+      "Introduce foods gradually."
+    ],
+    "warnings": [
+      "Do not assume a generic rodent diet meets guinea-pig vitamin C needs.",
+      "Get veterinary advice for appetite or weight changes."
+    ],
+    "tags": [
+      "guinea-pig",
+      "vitamin-c",
+      "hay",
+      "nutrition"
+    ],
+    "source_ids": [
+      "rspca_guinea_pig_diet"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "ferret-care",
+    "title": "Ferret routine care",
+    "category": "prevention",
+    "subcategory": "wellness",
+    "species": [
+      "ferret"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "moderate",
+    "summary": "Ferrets need species-appropriate nutrition, enrichment, dental care and veterinary oversight.",
+    "content": "Plan routine examinations with a veterinarian experienced with ferrets when possible. Keep vaccination records, medication history and dental findings in GRRR Care. Ferrets need supervised exercise and an environment that prevents escape, overheating and ingestion of hazards.",
+    "key_points": [
+      "Identify a ferret-experienced veterinarian.",
+      "Track vaccination and dental care.",
+      "Provide regular supervised exercise."
+    ],
+    "warnings": [
+      "Vaccination protocols can have species-specific considerations and adverse reactions.",
+      "Do not copy dog or cat treatment plans to ferrets."
+    ],
+    "tags": [
+      "ferret",
+      "exotic",
+      "vaccination",
+      "dental"
+    ],
+    "source_ids": [
+      "merck_ferret_care",
+      "merck_ferret_management"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "bird-nutrition",
+    "title": "Pet bird and parrot nutrition",
+    "category": "nutrition",
+    "subcategory": "daily-diet",
+    "species": [
+      "bird",
+      "parrot",
+      "chicken"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "moderate",
+    "summary": "Bird diets vary greatly by species, and a species-specific nutritional plan is essential.",
+    "content": "For many parrots, RSPCA guidance favors a nutritionally complete pellet-based diet combined with suitable washed produce rather than a seed-only diet. Small parrot species, canaries and finches can have different requirements, so identify the species before giving dietary guidance.",
+    "key_points": [
+      "Identify the exact bird species.",
+      "Use a species-appropriate balanced diet.",
+      "Track body weight and droppings during diet changes."
+    ],
+    "warnings": [
+      "Avian diets vary widely by species.",
+      "Avoid blanket rules for all birds."
+    ],
+    "tags": [
+      "bird",
+      "parrot",
+      "nutrition",
+      "pellets",
+      "seed"
+    ],
+    "source_ids": [
+      "rspca_bird_diet"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "bird-toxic-foods",
+    "title": "Bird food safety",
+    "category": "nutrition",
+    "subcategory": "toxicity",
+    "species": [
+      "bird",
+      "parrot"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "high",
+    "summary": "Certain foods are dangerous for birds and should be excluded from the diet.",
+    "content": "RSPCA specifically warns that avocado is highly poisonous to parrots. GRRR Care should treat food questions as species-specific and use a verified toxic-food reference rather than a generic human-food list.",
+    "key_points": [
+      "Check the species before answering.",
+      "Avoid avocado for parrots.",
+      "Escalate suspected ingestion of a toxic food."
+    ],
+    "warnings": [
+      "Do not generalize one bird species' diet to another."
+    ],
+    "tags": [
+      "bird",
+      "parrot",
+      "toxicity",
+      "avocado"
+    ],
+    "source_ids": [
+      "rspca_bird_diet"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "reptile-husbandry",
+    "title": "Reptile habitat basics",
+    "category": "housing",
+    "subcategory": "temperature-humidity-uvb",
+    "species": [
+      "reptile",
+      "snake",
+      "turtle_tortoise"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "moderate",
+    "summary": "Reptiles depend heavily on correct environmental conditions, and those conditions vary by species.",
+    "content": "A suitable enclosure must match the species' natural lifestyle and include appropriate temperature gradients, humidity, lighting/UVB where required, water, retreats and substrate. Species should not be mixed casually, and many pet reptiles are best housed individually unless species-specific husbandry supports otherwise.",
+    "key_points": [
+      "Identify exact species before setting temperature/humidity advice.",
+      "Monitor enclosure conditions with appropriate instruments.",
+      "Provide hiding places and species-appropriate structure."
+    ],
+    "warnings": [
+      "Never give one universal temperature or humidity range for all reptiles.",
+      "Do not assume a pet-store setup is automatically species-appropriate."
+    ],
+    "tags": [
+      "reptile",
+      "habitat",
+      "humidity",
+      "temperature",
+      "uvb"
+    ],
+    "source_ids": [
+      "merck_reptiles",
+      "merck_reptile_nutrition"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "reptile-nutrition",
+    "title": "Reptile nutrition basics",
+    "category": "nutrition",
+    "subcategory": "species-specific",
+    "species": [
+      "reptile",
+      "snake",
+      "turtle_tortoise"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "moderate",
+    "summary": "Reptile diets range from insectivorous to herbivorous, carnivorous and omnivorous, so the species must be known before making food recommendations.",
+    "content": "Nutrition depends on species, life stage and husbandry. Insectivorous species may need appropriately selected feeder insects and attention to calcium balance; herbivorous and omnivorous species need varied, species-appropriate plant foods. Environmental temperature and lighting can affect feeding and nutrient use.",
+    "key_points": [
+      "Identify exact species and age.",
+      "Match diet to natural feeding ecology.",
+      "Review calcium and UVB management with a reptile veterinarian when appropriate."
+    ],
+    "warnings": [
+      "Do not apply a single supplement or feeding schedule to all reptiles."
+    ],
+    "tags": [
+      "reptile",
+      "nutrition",
+      "calcium",
+      "uvb"
+    ],
+    "source_ids": [
+      "merck_reptile_nutrition"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "fish-water-quality",
+    "title": "Aquarium water quality",
+    "category": "housing",
+    "subcategory": "water-quality",
+    "species": [
+      "fish"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "high",
+    "summary": "For aquarium fish, water quality is a core part of health management.",
+    "content": "Monitor the water conditions relevant to the species, maintain filtration and aeration, perform appropriate water changes and avoid overcrowding. Poor water quality can contribute to environmental disease and stress, and different fish have different temperature, pH and social requirements.",
+    "key_points": [
+      "Test water routinely.",
+      "Match temperature and water chemistry to the species.",
+      "Quarantine or carefully assess new fish before adding them to an established system."
+    ],
+    "warnings": [
+      "Do not use a single pH or temperature target for every fish.",
+      "Unexpected illness may require water testing as part of the assessment."
+    ],
+    "tags": [
+      "fish",
+      "aquarium",
+      "water-quality",
+      "filtration",
+      "quarantine"
+    ],
+    "source_ids": [
+      "merck_fish_care",
+      "merck_fish_home",
+      "merck_fish_health"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "fish-illness",
+    "title": "Common fish illness signals",
+    "category": "symptoms",
+    "subcategory": "aquatic",
+    "species": [
+      "fish"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "high",
+    "summary": "Fish illness may appear as changes in swimming, appetite, color, body condition or fins.",
+    "content": "When a fish looks unwell, collect system information as well as observing the animal: water temperature, relevant water-quality tests, recent tank changes, new fish and feeding changes. Environmental causes can be as important as infectious causes.",
+    "key_points": [
+      "Check the aquarium environment.",
+      "Record recent tank changes.",
+      "Isolate or quarantine appropriately when advised."
+    ],
+    "warnings": [
+      "Do not add random medications before assessing water quality and the species."
+    ],
+    "tags": [
+      "fish",
+      "illness",
+      "aquarium",
+      "water-quality"
+    ],
+    "source_ids": [
+      "merck_fish_health"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "safe-food-carrot-dog",
+    "title": "Carrots as a dog treat",
+    "category": "nutrition",
+    "subcategory": "food-question",
+    "species": [
+      "dog"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "low",
+    "summary": "Carrots can be offered to many dogs as an occasional food, but portion and preparation should be appropriate for the individual.",
+    "content": "When GRRR receives a food question, it should consider the dog's size, health conditions and current diet. Carrots should be treated as an occasional food rather than a replacement for complete nutrition.",
+    "key_points": [
+      "Keep treats moderate.",
+      "Use appropriately sized pieces for the individual dog.",
+      "Consider existing medical or dietary restrictions."
+    ],
+    "warnings": [
+      "This is general information, not an individualized feeding prescription."
+    ],
+    "tags": [
+      "dog",
+      "carrot",
+      "treat",
+      "food"
+    ],
+    "source_ids": [
+      "merck_preventive"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "safe-food-rabbit",
+    "title": "Carrots are treats for rabbits",
+    "category": "nutrition",
+    "subcategory": "food-question",
+    "species": [
+      "rabbit"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "low",
+    "summary": "For rabbits, carrot is an occasional treat rather than the main food.",
+    "content": "Rabbit nutrition should be centered on hay/grass, with appropriate leafy greens and a small measured portion of pellets. Root vegetables and fruit such as carrots should be offered only in small amounts.",
+    "key_points": [
+      "Keep hay/grass central to the diet.",
+      "Use carrot sparingly.",
+      "Avoid sudden diet changes."
+    ],
+    "warnings": [
+      "Do not interpret a cute food association as a nutritional recommendation."
+    ],
+    "tags": [
+      "rabbit",
+      "carrot",
+      "treat",
+      "hay"
+    ],
+    "source_ids": [
+      "rspca_rabbit_diet"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "poisoning-response",
+    "title": "Suspected poisoning: immediate response",
+    "category": "emergency",
+    "subcategory": "poisoning",
+    "species": [
+      "dog",
+      "cat",
+      "rabbit",
+      "guinea_pig",
+      "hamster",
+      "mouse",
+      "rat",
+      "ferret",
+      "bird",
+      "parrot",
+      "chicken",
+      "reptile",
+      "snake",
+      "turtle_tortoise",
+      "amphibian",
+      "fish"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "emergency",
+    "summary": "Suspected poisoning should be handled as a veterinary or animal-poison emergency rather than managed by trial and error.",
+    "content": "Record what the animal may have ingested, the product name or active ingredient if available, approximate time, amount if known, the animal's species/weight, and current symptoms. Contact a veterinarian or animal poison service promptly. Bring the packaging when possible.",
+    "key_points": [
+      "Keep packaging or labels.",
+      "Record time and suspected amount.",
+      "Seek professional advice promptly."
+    ],
+    "warnings": [
+      "Do not induce vomiting unless specifically instructed.",
+      "Do not give home remedies without veterinary/poison-professional guidance."
+    ],
+    "tags": [
+      "poisoning",
+      "toxin",
+      "emergency",
+      "safety"
+    ],
+    "source_ids": [
+      "fda_dangerous_items",
+      "fda_med_storage"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "medication-mistake",
+    "title": "Wrong dose or wrong medication",
+    "category": "emergency",
+    "subcategory": "medication-error",
+    "species": [
+      "dog",
+      "cat",
+      "rabbit",
+      "guinea_pig",
+      "hamster",
+      "mouse",
+      "rat",
+      "ferret",
+      "bird",
+      "parrot",
+      "chicken",
+      "reptile",
+      "snake",
+      "turtle_tortoise",
+      "amphibian",
+      "fish"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "emergency",
+    "summary": "Medication mistakes can be harmful and should be handled promptly with veterinary advice.",
+    "content": "If a pet may have received the wrong medication, wrong dose or a medication too frequently, keep the package, record what happened and contact a veterinarian or animal poison service. GRRR Care should store the incident in the health timeline without guessing the outcome.",
+    "key_points": [
+      "Record medication name, strength, dose and time.",
+      "Contact a veterinary professional promptly.",
+      "Monitor for changes while awaiting instructions."
+    ],
+    "warnings": [
+      "Do not recommend doubling or skipping the next dose unless the prescribing professional advises it."
+    ],
+    "tags": [
+      "medication-error",
+      "overdose",
+      "poisoning",
+      "emergency"
+    ],
+    "source_ids": [
+      "fda_med_errors",
+      "fda_med_storage"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  },
+  {
+    "id": "reptile-handling",
+    "title": "Reptile handling and stress",
+    "category": "behavior",
+    "subcategory": "handling",
+    "species": [
+      "reptile",
+      "snake",
+      "turtle_tortoise"
+    ],
+    "language": "en",
+    "status": "published",
+    "risk_level": "moderate",
+    "summary": "Many reptiles are better supported by appropriate habitat and predictable handling than by frequent physical interaction.",
+    "content": "Handle according to species-specific needs, support the body appropriately and minimize unnecessary stress. Hygiene matters because reptiles and their environments can carry organisms that can affect humans.",
+    "key_points": [
+      "Identify the species before giving handling advice.",
+      "Wash hands after handling the animal or enclosure.",
+      "Provide hides and appropriate environmental enrichment."
+    ],
+    "warnings": [
+      "Do not assume a reptile enjoys frequent handling.",
+      "Do not restrain a sick or distressed reptile without veterinary guidance."
+    ],
+    "tags": [
+      "reptile",
+      "handling",
+      "stress",
+      "hygiene"
+    ],
+    "source_ids": [
+      "merck_reptiles",
+      "merck_reptile_nutrition"
+    ],
+    "review_status": "needs_veterinary_review",
+    "review_notes": "Educational reference only. Do not use for diagnosis or individualized prescribing."
+  }
+]

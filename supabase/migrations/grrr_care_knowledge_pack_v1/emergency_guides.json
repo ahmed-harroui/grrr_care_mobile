@@ -1,0 +1,127 @@
+[
+  {
+    "id": "breathing-difficulty",
+    "species": [
+      "dog",
+      "cat",
+      "rabbit",
+      "guinea_pig",
+      "hamster",
+      "mouse",
+      "rat",
+      "ferret",
+      "bird",
+      "parrot",
+      "chicken",
+      "reptile",
+      "snake",
+      "turtle_tortoise",
+      "amphibian",
+      "fish"
+    ],
+    "condition": "Difficulty breathing",
+    "severity": "EMERGENCY",
+    "symptoms": [
+      "marked breathing effort",
+      "open-mouth breathing when abnormal for the species",
+      "blue/gray gums or tongue",
+      "collapse or severe weakness"
+    ],
+    "immediate_actions": [
+      "Move the pet to a calm, safe environment.",
+      "Contact an emergency veterinarian immediately.",
+      "Transport promptly according to veterinary instructions."
+    ],
+    "do_not_do": [
+      "Do not wait for an AI answer to see whether it improves.",
+      "Do not give unprescribed human medicines."
+    ],
+    "when_to_call_vet": "Immediately when breathing is severely abnormal or the animal is collapsing.",
+    "source_ids": [
+      "merck_preventive"
+    ]
+  },
+  {
+    "id": "suspected-poisoning",
+    "species": [
+      "dog",
+      "cat",
+      "rabbit",
+      "guinea_pig",
+      "hamster",
+      "mouse",
+      "rat",
+      "ferret",
+      "bird",
+      "parrot",
+      "chicken",
+      "reptile",
+      "snake",
+      "turtle_tortoise",
+      "amphibian",
+      "fish"
+    ],
+    "condition": "Suspected poisoning",
+    "severity": "EMERGENCY",
+    "symptoms": [
+      "known ingestion of a potentially toxic substance",
+      "unexpected vomiting or tremors after exposure",
+      "abnormal behavior after ingestion"
+    ],
+    "immediate_actions": [
+      "Keep the product/package.",
+      "Record the suspected substance, time and amount if known.",
+      "Contact a veterinarian or animal poison service promptly."
+    ],
+    "do_not_do": [
+      "Do not induce vomiting unless instructed by a professional.",
+      "Do not give home antidotes without veterinary guidance."
+    ],
+    "when_to_call_vet": "Immediately when a potentially toxic exposure is suspected.",
+    "source_ids": [
+      "fda_dangerous_items",
+      "fda_med_storage"
+    ]
+  },
+  {
+    "id": "severe-bleeding",
+    "species": [
+      "dog",
+      "cat",
+      "rabbit",
+      "guinea_pig",
+      "hamster",
+      "mouse",
+      "rat",
+      "ferret",
+      "bird",
+      "parrot",
+      "chicken",
+      "reptile",
+      "snake",
+      "turtle_tortoise",
+      "amphibian",
+      "fish"
+    ],
+    "condition": "Severe bleeding",
+    "severity": "EMERGENCY",
+    "symptoms": [
+      "heavy bleeding",
+      "blood that does not slow with appropriate gentle pressure",
+      "weakness or collapse"
+    ],
+    "immediate_actions": [
+      "Apply clean gentle pressure when appropriate.",
+      "Keep the pet calm and warm.",
+      "Seek emergency veterinary care."
+    ],
+    "do_not_do": [
+      "Do not delay transport to repeatedly inspect the wound.",
+      "Do not apply unapproved chemicals into deep wounds."
+    ],
+    "when_to_call_vet": "Immediately for heavy or uncontrolled bleeding.",
+    "source_ids": [
+      "merck_preventive"
+    ]
+  }
+]

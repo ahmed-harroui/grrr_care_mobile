@@ -1,0 +1,32 @@
+[
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440001",
+    "name": "Merck Veterinary Manual",
+    "description": "Comprehensive veterinary reference for companion animals",
+    "url": "https://www.merckvetmanual.com",
+    "authority_level": "primary",
+    "organization": "Merck",
+    "verified_date": "2025-01-01",
+    "is_active": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440002",
+    "name": "RSPCA (Royal Society for Prevention of Cruelty to Animals)",
+    "description": "Animal welfare and care guidelines",
+    "url": "https://www.rspca.org.uk",
+    "authority_level": "primary",
+    "organization": "RSPCA",
+    "verified_date": "2025-01-01",
+    "is_active": true
+  },
+  {
+    "id": "550e8400-e29b-41d4-a716-446655440003",
+    "name": "FDA (Food and Drug Administration)",
+    "description": "Pet medication and safety guidelines",
+    "url": "https://www.fda.gov/animal-veterinary",
+    "authority_level": "primary",
+    "organization": "FDA",
+    "verified_date": "2025-01-01",
+    "is_active": true
+  }
+]

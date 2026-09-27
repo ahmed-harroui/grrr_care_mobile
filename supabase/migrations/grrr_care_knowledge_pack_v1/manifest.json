@@ -1,0 +1,25 @@
+{
+  "pack_name": "GRRR Care Knowledge Base",
+  "version": "1.0.0",
+  "language": "en",
+  "status": "starter_pack",
+  "description": "Structured starter knowledge pack for GRRR Care RAG. Includes companion species, source registry, educational articles, emergency safety records and embedding-ready chunks.",
+  "medical_safety": "Educational reference only. Veterinary diagnosis, emergency triage and medication decisions must be handled by qualified professionals.",
+  "species_count": 18,
+  "document_count": 24,
+  "chunk_count": 24,
+  "categories": [
+    "nutrition",
+    "prevention",
+    "symptoms",
+    "emergency",
+    "medication",
+    "housing",
+    "behavior"
+  ],
+  "review_policy": {
+    "default_status": "needs_veterinary_review",
+    "publication_status": "published",
+    "reason": "Starter content is curated and paraphrased, but should be reviewed by your veterinary advisor before being treated as clinical guidance."
+  }
+}

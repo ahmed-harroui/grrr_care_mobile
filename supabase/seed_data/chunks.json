@@ -1,0 +1,146 @@
+[
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440001",
+    "document_id": "660e8400-e29b-41d4-a716-446655440001",
+    "chunk_text": "Dogs require balanced nutrition with proteins, fats, carbohydrates, vitamins and minerals. Puppies need high-protein diets (22-32% protein) for growth.",
+    "chunk_index": 0,
+    "embedding": null,
+    "metadata": {
+      "species": "dog",
+      "category": "nutrition",
+      "risk_level": "moderate"
+    }
+  },
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440002",
+    "document_id": "660e8400-e29b-41d4-a716-446655440001",
+    "chunk_text": "Adult dogs need 18-25% protein. Feed twice daily for adults, three times for puppies. Always provide fresh water.",
+    "chunk_index": 1,
+    "embedding": null,
+    "metadata": {
+      "species": "dog",
+      "category": "nutrition",
+      "risk_level": "moderate"
+    }
+  },
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440003",
+    "document_id": "660e8400-e29b-41d4-a716-446655440002",
+    "chunk_text": "Dogs should receive regular vaccinations including rabies, DHPP (distemper, hepatitis, parvovirus, parainfluenza). Annual check-ups recommended.",
+    "chunk_index": 0,
+    "embedding": null,
+    "metadata": {
+      "species": "dog",
+      "category": "prevention",
+      "risk_level": "moderate"
+    }
+  },
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440004",
+    "document_id": "660e8400-e29b-41d4-a716-446655440003",
+    "chunk_text": "Always store medications in original labeled containers. Never give human medications to dogs. Common safe medications: amoxicillin, aspirin (with vet approval).",
+    "chunk_index": 0,
+    "embedding": null,
+    "metadata": {
+      "species": "dog",
+      "category": "medication",
+      "risk_level": "high"
+    }
+  },
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440005",
+    "document_id": "660e8400-e29b-41d4-a716-446655440003",
+    "chunk_text": "Toxic substances: acetaminophen, ibuprofen, chocolate, grapes, onions. If accidental exposure, contact vet immediately.",
+    "chunk_index": 1,
+    "embedding": null,
+    "metadata": {
+      "species": "dog",
+      "category": "medication",
+      "risk_level": "high"
+    }
+  },
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440006",
+    "document_id": "660e8400-e29b-41d4-a716-446655440004",
+    "chunk_text": "Cats are obligate carnivores needing high-quality protein (30%+ for adults). Kittens need 30-40% protein. Feed 2-3 times daily for kittens, once daily for adults.",
+    "chunk_index": 0,
+    "embedding": null,
+    "metadata": {
+      "species": "cat",
+      "category": "nutrition",
+      "risk_level": "moderate"
+    }
+  },
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440007",
+    "document_id": "660e8400-e29b-41d4-a716-446655440004",
+    "chunk_text": "Ensure adequate taurine intake (essential amino acid). Wet food helps maintain hydration.",
+    "chunk_index": 1,
+    "embedding": null,
+    "metadata": {
+      "species": "cat",
+      "category": "nutrition",
+      "risk_level": "moderate"
+    }
+  },
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440008",
+    "document_id": "660e8400-e29b-41d4-a716-446655440005",
+    "chunk_text": "Cats need FVRCP vaccine (feline viral rhinotracheitis, calicivirus, panleukopenia) and rabies. Dental care crucial - brush teeth regularly.",
+    "chunk_index": 0,
+    "embedding": null,
+    "metadata": {
+      "species": "cat",
+      "category": "prevention",
+      "risk_level": "moderate"
+    }
+  },
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440009",
+    "document_id": "660e8400-e29b-41d4-a716-446655440006",
+    "chunk_text": "Rabbits need unlimited timothy hay (80% of diet), fresh vegetables (leafy greens), and limited pellets. Provide 1 cup pellets per 5 lbs body weight daily.",
+    "chunk_index": 0,
+    "embedding": null,
+    "metadata": {
+      "species": "rabbit",
+      "category": "nutrition",
+      "risk_level": "moderate"
+    }
+  },
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440010",
+    "document_id": "660e8400-e29b-41d4-a716-446655440006",
+    "chunk_text": "Avoid: iceberg lettuce, beans, grains. Hay keeps teeth healthy and aids digestion.",
+    "chunk_index": 1,
+    "embedding": null,
+    "metadata": {
+      "species": "rabbit",
+      "category": "nutrition",
+      "risk_level": "moderate"
+    }
+  },
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440011",
+    "document_id": "660e8400-e29b-41d4-a716-446655440008",
+    "chunk_text": "Birds need varied diet: high-quality pellets (60%), fresh fruits/vegetables (30%), seeds/nuts (10%). Avoid: avocado, chocolate, salt, caffeine.",
+    "chunk_index": 0,
+    "embedding": null,
+    "metadata": {
+      "species": "bird",
+      "category": "nutrition",
+      "risk_level": "moderate"
+    }
+  },
+  {
+    "id": "880e8400-e29b-41d4-a716-446655440012",
+    "document_id": "660e8400-e29b-41d4-a716-446655440010",
+    "chunk_text": "Horses need unlimited hay/pasture (1.5-2.5% body weight daily), supplemented with grain/concentrates based on activity level. Working horses need more calories.",
+    "chunk_index": 0,
+    "embedding": null,
+    "metadata": {
+      "species": "horse",
+      "category": "nutrition",
+      "risk_level": "moderate"
+    }
+  }
+]

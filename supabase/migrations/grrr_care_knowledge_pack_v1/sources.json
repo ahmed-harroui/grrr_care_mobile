@@ -1,0 +1,162 @@
+[
+  {
+    "id": "merck_overview",
+    "name": "Merck Veterinary Manual",
+    "organization": "Merck & Co., Inc.",
+    "type": "veterinary_reference",
+    "url": "https://www.merckvetmanual.com/resourcespages/about",
+    "notes": "Veterinarian-authored and reviewed reference covering companion, exotic and other animal health topics."
+  },
+  {
+    "id": "merck_preventive",
+    "name": "Preventative Health Care for Small Animals",
+    "organization": "Merck Veterinary Manual",
+    "type": "veterinary_reference",
+    "url": "https://www.merckvetmanual.com/management-and-nutrition/preventative-health-care-and-husbandry-in-small-animals/preventative-health-care-for-small-animals",
+    "notes": "General preventive-care framework for small animals."
+  },
+  {
+    "id": "merck_cat_routine",
+    "name": "Routine Health Care of Cats",
+    "organization": "Merck Veterinary Manual",
+    "type": "veterinary_reference",
+    "url": "https://www.merckvetmanual.com/cat-owners/caring-for-cats/routine-health-care-of-cats",
+    "notes": "Cat routine health care and veterinary visit guidance."
+  },
+  {
+    "id": "merck_cat_nutrition",
+    "name": "Proper Nutrition for Cats",
+    "organization": "Merck Veterinary Manual",
+    "type": "veterinary_reference",
+    "url": "https://www.merckvetmanual.com/cat-owners/selecting-and-providing-a-home-for-a-cat/proper-nutrition-for-cats",
+    "notes": "Cat nutrition basics."
+  },
+  {
+    "id": "merck_reptiles",
+    "name": "Management and Husbandry of Reptiles",
+    "organization": "Merck Veterinary Manual",
+    "type": "veterinary_reference",
+    "url": "https://www.merckvetmanual.com/exotic-and-laboratory-animals/reptiles/management-and-husbandry-of-reptiles",
+    "notes": "Species-specific enclosure, temperature, humidity and diet principles."
+  },
+  {
+    "id": "merck_reptile_nutrition",
+    "name": "Nutrition in Reptiles",
+    "organization": "Merck Veterinary Manual",
+    "type": "veterinary_reference",
+    "url": "https://www.merckvetmanual.com/management-and-nutrition/nutrition-exotic-and-zoo-animals/nutrition-in-reptiles",
+    "notes": "Reptile nutrition and husbandry interactions."
+  },
+  {
+    "id": "merck_ferret_care",
+    "name": "Routine Health Care for Ferrets",
+    "organization": "Merck Veterinary Manual",
+    "type": "veterinary_reference",
+    "url": "https://www.merckvetmanual.com/all-other-pets/ferrets/routine-health-care-for-ferrets",
+    "notes": "Ferret preventive care, dentistry and vaccination considerations."
+  },
+  {
+    "id": "merck_ferret_management",
+    "name": "Management of Ferrets",
+    "organization": "Merck Veterinary Manual",
+    "type": "veterinary_reference",
+    "url": "https://www.merckvetmanual.com/exotic-and-laboratory-animals/ferrets/management-of-ferrets",
+    "notes": "Ferret nutrition and clinical care."
+  },
+  {
+    "id": "merck_fish_care",
+    "name": "Special Considerations for Fish",
+    "organization": "Merck Veterinary Manual",
+    "type": "veterinary_reference",
+    "url": "https://www.merckvetmanual.com/all-other-pets/fish/special-considerations-for-fish",
+    "notes": "Aquarium ecosystem, water quality and species-specific needs."
+  },
+  {
+    "id": "merck_fish_home",
+    "name": "Providing a Home for Fish",
+    "organization": "Merck Veterinary Manual",
+    "type": "veterinary_reference",
+    "url": "https://www.merckvetmanual.com/all-other-pets/fish/providing-a-home-for-fish",
+    "notes": "Aquarium setup and water-quality basics."
+  },
+  {
+    "id": "merck_fish_health",
+    "name": "Routine Health Care of Fish",
+    "organization": "Merck Veterinary Manual",
+    "type": "veterinary_reference",
+    "url": "https://www.merckvetmanual.com/all-other-pets/fish/routine-health-care-of-fish",
+    "notes": "Fish health management and signs of illness."
+  },
+  {
+    "id": "rspca_rabbit_diet",
+    "name": "What do rabbits eat?",
+    "organization": "RSPCA",
+    "type": "animal_welfare_reference",
+    "url": "https://www.rspca.org.uk/adviceandwelfare/pets/rabbits/diet",
+    "notes": "Rabbit hay/grass, greens, pellets and treat guidance."
+  },
+  {
+    "id": "rspca_rabbit_health",
+    "name": "Rabbit health: signs of illness and care",
+    "organization": "RSPCA",
+    "type": "animal_welfare_reference",
+    "url": "https://www.rspca.org.uk/adviceandwelfare/pets/rabbits/health",
+    "notes": "Rabbit dental and health warning signs."
+  },
+  {
+    "id": "rspca_hamster_home",
+    "name": "Creating a Good Home for Hamsters",
+    "organization": "RSPCA",
+    "type": "animal_welfare_reference",
+    "url": "https://www.rspca.org.uk/adviceandwelfare/pets/rodents/hamsters/environment",
+    "notes": "Hamster housing, bedding, nesting and stress reduction."
+  },
+  {
+    "id": "rspca_hamster_diet",
+    "name": "What To Feed a Pet Hamster",
+    "organization": "RSPCA",
+    "type": "animal_welfare_reference",
+    "url": "https://www.rspca.org.uk/adviceandwelfare/pets/rodents/hamsters/diet",
+    "notes": "Hamster diet and monitoring appetite/stools."
+  },
+  {
+    "id": "rspca_guinea_pig_diet",
+    "name": "What To Feed a Guinea Pig",
+    "organization": "RSPCA",
+    "type": "animal_welfare_reference",
+    "url": "https://www.rspca.org.uk/adviceandwelfare/pets/rodents/guineapigs/diet",
+    "notes": "Guinea pig diet and vitamin C guidance."
+  },
+  {
+    "id": "rspca_bird_diet",
+    "name": "What To Feed Your Pet Bird",
+    "organization": "RSPCA",
+    "type": "animal_welfare_reference",
+    "url": "https://www.rspca.org.uk/adviceandwelfare/pets/birds/diet",
+    "notes": "Parrot diet and unsafe food guidance."
+  },
+  {
+    "id": "fda_med_storage",
+    "name": "Properly Store Medications to Keep Your Pet Safe",
+    "organization": "U.S. FDA Center for Veterinary Medicine",
+    "type": "regulatory_safety_reference",
+    "url": "https://www.fda.gov/animal-veterinary/animal-health-literacy/properly-store-medications-keep-your-pet-safe",
+    "notes": "Medication storage and accidental exposure prevention."
+  },
+  {
+    "id": "fda_med_errors",
+    "name": "Veterinary Medication Errors",
+    "organization": "U.S. FDA Center for Veterinary Medicine",
+    "type": "regulatory_safety_reference",
+    "url": "https://www.fda.gov/animal-veterinary/product-safety-information/veterinary-medication-errors",
+    "notes": "Medication safety, label reading and avoiding sharing drugs."
+  },
+  {
+    "id": "fda_dangerous_items",
+    "name": "Potentially Dangerous Items for Your Pet",
+    "organization": "U.S. FDA Center for Veterinary Medicine",
+    "type": "regulatory_safety_reference",
+    "url": "https://www.fda.gov/animal-veterinary/animal-health-literacy/potentially-dangerous-items-your-pet",
+    "notes": "Common household and food hazards."
+  }
+]

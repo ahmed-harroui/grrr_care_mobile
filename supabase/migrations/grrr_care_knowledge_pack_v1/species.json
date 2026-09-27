@@ -1,0 +1,221 @@
+[
+  {
+    "id": "dog",
+    "name": "Dog",
+    "emoji": "🐶",
+    "group": "mammal",
+    "common_breeds": [
+      "Labrador Retriever",
+      "Golden Retriever",
+      "French Bulldog",
+      "German Shepherd"
+    ],
+    "supported": true
+  },
+  {
+    "id": "cat",
+    "name": "Cat",
+    "emoji": "🐱",
+    "group": "mammal",
+    "common_breeds": [
+      "Domestic Shorthair",
+      "British Shorthair",
+      "Persian",
+      "Maine Coon"
+    ],
+    "supported": true
+  },
+  {
+    "id": "rabbit",
+    "name": "Rabbit",
+    "emoji": "🐰",
+    "group": "small_mammal",
+    "common_breeds": [
+      "Holland Lop",
+      "Mini Rex",
+      "Netherland Dwarf",
+      "Lionhead"
+    ],
+    "supported": true
+  },
+  {
+    "id": "guinea_pig",
+    "name": "Guinea pig",
+    "emoji": "🐹",
+    "group": "small_mammal",
+    "common_breeds": [
+      "American",
+      "Abyssinian",
+      "Peruvian",
+      "Teddy"
+    ],
+    "supported": true
+  },
+  {
+    "id": "hamster",
+    "name": "Hamster",
+    "emoji": "🐹",
+    "group": "small_mammal",
+    "common_breeds": [
+      "Syrian",
+      "Dwarf Campbell",
+      "Winter White",
+      "Roborovski"
+    ],
+    "supported": true
+  },
+  {
+    "id": "mouse",
+    "name": "Mouse",
+    "emoji": "🐭",
+    "group": "small_mammal",
+    "common_breeds": [
+      "House mouse varieties"
+    ],
+    "supported": true
+  },
+  {
+    "id": "rat",
+    "name": "Rat",
+    "emoji": "🐀",
+    "group": "small_mammal",
+    "common_breeds": [
+      "Fancy rat varieties"
+    ],
+    "supported": true
+  },
+  {
+    "id": "ferret",
+    "name": "Ferret",
+    "emoji": "🦦",
+    "group": "mustelid",
+    "common_breeds": [
+      "Domestic ferret varieties"
+    ],
+    "supported": true
+  },
+  {
+    "id": "bird",
+    "name": "Pet bird",
+    "emoji": "🐦",
+    "group": "bird",
+    "common_breeds": [
+      "Canary",
+      "Finch",
+      "Dove",
+      "Pigeon"
+    ],
+    "supported": true
+  },
+  {
+    "id": "parrot",
+    "name": "Parrot",
+    "emoji": "🦜",
+    "group": "bird",
+    "common_breeds": [
+      "Budgerigar",
+      "Cockatiel",
+      "Lovebird",
+      "African Grey",
+      "Conure",
+      "Macaw"
+    ],
+    "supported": true
+  },
+  {
+    "id": "chicken",
+    "name": "Chicken",
+    "emoji": "🐔",
+    "group": "bird",
+    "common_breeds": [
+      "Bantam",
+      "Silkie",
+      "Orpington"
+    ],
+    "supported": true
+  },
+  {
+    "id": "reptile",
+    "name": "Reptile",
+    "emoji": "🦎",
+    "group": "reptile",
+    "common_breeds": [
+      "Gecko",
+      "Iguana",
+      "Bearded dragon",
+      "Skink"
+    ],
+    "supported": true
+  },
+  {
+    "id": "snake",
+    "name": "Snake",
+    "emoji": "🐍",
+    "group": "reptile",
+    "common_breeds": [
+      "Corn snake",
+      "Ball python",
+      "King snake"
+    ],
+    "supported": true
+  },
+  {
+    "id": "turtle_tortoise",
+    "name": "Turtle / tortoise",
+    "emoji": "🐢",
+    "group": "reptile",
+    "common_breeds": [
+      "Greek tortoise",
+      "Box turtle",
+      "Red-eared slider"
+    ],
+    "supported": true
+  },
+  {
+    "id": "amphibian",
+    "name": "Amphibian",
+    "emoji": "🐸",
+    "group": "amphibian",
+    "common_breeds": [
+      "Frog",
+      "Toad",
+      "Newt",
+      "Axolotl"
+    ],
+    "supported": true
+  },
+  {
+    "id": "fish",
+    "name": "Aquarium fish",
+    "emoji": "🐠",
+    "group": "fish",
+    "common_breeds": [
+      "Goldfish",
+      "Betta",
+      "Guppy",
+      "Tetra",
+      "Cichlid"
+    ],
+    "supported": true
+  },
+  {
+    "id": "horse",
+    "name": "Horse",
+    "emoji": "🐴",
+    "group": "large_mammal",
+    "common_breeds": [
+      "Arabian",
+      "Quarter Horse",
+      "Thoroughbred"
+    ],
+    "supported": true
+  },
+  {
+    "id": "other",
+    "name": "Other pet",
+    "emoji": "🐾",
+    "group": "other",
+    "common_breeds": [],
+    "supported": true
+  }
+]

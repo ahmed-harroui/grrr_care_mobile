@@ -1,0 +1,123 @@
+[
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440001",
+    "title": "Dog Nutrition and Feeding Guide",
+    "category": "nutrition",
+    "species": ["dog"],
+    "tags": ["food", "diet", "puppies", "adults"],
+    "risk_level": "moderate",
+    "source_id": "550e8400-e29b-41d4-a716-446655440001",
+    "content": "Dogs require balanced nutrition with proteins, fats, carbohydrates, vitamins and minerals. Puppies need high-protein diets (22-32% protein) for growth. Adult dogs need 18-25% protein. Feed twice daily for adults, three times for puppies. Always provide fresh water.",
+    "is_published": true
+  },
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440002",
+    "title": "Common Dog Health Issues and Prevention",
+    "category": "prevention",
+    "species": ["dog"],
+    "tags": ["health", "vaccines", "prevention"],
+    "risk_level": "moderate",
+    "source_id": "550e8400-e29b-41d4-a716-446655440002",
+    "content": "Dogs should receive regular vaccinations including rabies, DHPP (distemper, hepatitis, parvovirus, parainfluenza). Annual check-ups recommended. Common issues: ear infections, dental disease, obesity. Maintain healthy weight through proper diet and exercise.",
+    "is_published": true
+  },
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440003",
+    "title": "Dog Medication Safety",
+    "category": "medication",
+    "species": ["dog"],
+    "tags": ["drugs", "dosage", "safety"],
+    "risk_level": "high",
+    "source_id": "550e8400-e29b-41d4-a716-446655440003",
+    "content": "Always store medications in original labeled containers. Never give human medications to dogs. Common safe medications: amoxicillin, aspirin (with vet approval). Toxic: acetaminophen, ibuprofen, chocolate, grapes, onions. If accidental exposure, contact vet immediately.",
+    "is_published": true
+  },
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440004",
+    "title": "Cat Nutrition and Diet",
+    "category": "nutrition",
+    "species": ["cat"],
+    "tags": ["food", "diet", "kittens", "adult"],
+    "risk_level": "moderate",
+    "source_id": "550e8400-e29b-41d4-a716-446655440001",
+    "content": "Cats are obligate carnivores needing high-quality protein (30%+ for adults). Kittens need 30-40% protein. Feed 2-3 times daily for kittens, once daily for adults. Ensure adequate taurine intake (essential amino acid). Wet food helps maintain hydration.",
+    "is_published": true
+  },
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440005",
+    "title": "Cat Health and Wellness",
+    "category": "prevention",
+    "species": ["cat"],
+    "tags": ["vaccines", "health", "grooming"],
+    "risk_level": "moderate",
+    "source_id": "550e8400-e29b-41d4-a716-446655440002",
+    "content": "Cats need FVRCP vaccine (feline viral rhinotracheitis, calicivirus, panleukopenia) and rabies. Dental care crucial - brush teeth regularly. Monitor litter box habits (changes indicate illness). Annual exams recommended. Spay/neuter recommended.",
+    "is_published": true
+  },
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440006",
+    "title": "Rabbit Care and Nutrition",
+    "category": "nutrition",
+    "species": ["rabbit"],
+    "tags": ["hay", "vegetables", "diet"],
+    "risk_level": "moderate",
+    "source_id": "550e8400-e29b-41d4-a716-446655440002",
+    "content": "Rabbits need unlimited timothy hay (80% of diet), fresh vegetables (leafy greens), and limited pellets. Provide 1 cup pellets per 5 lbs body weight daily. Fresh water essential. Avoid: iceberg lettuce, beans, grains. Hay keeps teeth healthy and aids digestion.",
+    "is_published": true
+  },
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440007",
+    "title": "Rabbit Health and Habitat",
+    "category": "habitat",
+    "species": ["rabbit"],
+    "tags": ["housing", "environment", "health"],
+    "risk_level": "moderate",
+    "source_id": "550e8400-e29b-41d4-a716-446655440002",
+    "content": "Rabbits need spacious enclosures (minimum 4x2 feet), good ventilation, and cool temperatures (60-70°F). Provide hiding spots and enrichment. Avoid: heat, humidity, loud noises. Regular health checks for snuffles (respiratory), overgrown teeth, and ear mites.",
+    "is_published": true
+  },
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440008",
+    "title": "Bird Nutrition and Diet",
+    "category": "nutrition",
+    "species": ["bird"],
+    "tags": ["food", "seeds", "vegetables", "pellets"],
+    "risk_level": "moderate",
+    "source_id": "550e8400-e29b-41d4-a716-446655440001",
+    "content": "Birds need varied diet: high-quality pellets (60%), fresh fruits/vegetables (30%), seeds/nuts (10%). Avoid: avocado, chocolate, salt, caffeine. Different species need different nutrition (parrots: nuts and seeds; canaries: millet). Fresh water daily. Calcium important for egg-laying females.",
+    "is_published": true
+  },
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440009",
+    "title": "Bird Behavior and Habitat",
+    "category": "behavior",
+    "species": ["bird"],
+    "tags": ["habitat", "enrichment", "behavior"],
+    "risk_level": "low",
+    "source_id": "550e8400-e29b-41d4-a716-446655440002",
+    "content": "Birds need spacious cages (larger is better), natural light, and social interaction. Provide perches, toys, and foraging opportunities. Temperature 65-75°F optimal. Avoid drafts and smoke. Vocal birds can be loud in early morning/evening. Regular vet check-ups for respiratory health.",
+    "is_published": true
+  },
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440010",
+    "title": "Horse Nutrition and Feeding",
+    "category": "nutrition",
+    "species": ["horse"],
+    "tags": ["hay", "grain", "pasture"],
+    "risk_level": "moderate",
+    "source_id": "550e8400-e29b-41d4-a716-446655440001",
+    "content": "Horses need unlimited hay/pasture (1.5-2.5% body weight daily), supplemented with grain/concentrates based on activity level. Working horses need more calories. Fresh water essential (5-10 gallons daily). Minerals and vitamins important. Feeding schedule should be consistent.",
+    "is_published": true
+  },
+  {
+    "id": "660e8400-e29b-41d4-a716-446655440011",
+    "title": "Horse Health and Veterinary Care",
+    "category": "prevention",
+    "species": ["horse"],
+    "tags": ["vaccines", "dental", "hoof-care"],
+    "risk_level": "moderate",
+    "source_id": "550e8400-e29b-41d4-a716-446655440001",
+    "content": "Horses need annual vaccines (EWT: equine herpesvirus, influenza; tetanus booster annually). Dental care essential - float teeth annually. Hoof care every 6-8 weeks. Regular exercise maintains health. Watch for lameness, weight changes, lethargy. Colic is emergency - call vet immediately.",
+    "is_published": true
+  }
+]
