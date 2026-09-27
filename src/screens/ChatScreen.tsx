@@ -93,11 +93,11 @@ export function ChatScreen({ navigation }: any) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <AppHeader colors={colors} />
-      <GRRRBanner title={t('chat.askGRRR')} subtitle="Ask about your pet" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.innerContainer, { backgroundColor: colors.background }]}
       >
+        <GRRRBanner title={t('chat.askGRRR')} subtitle="Ask about your pet" />
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <View style={styles.headerTop}>

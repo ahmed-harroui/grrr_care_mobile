@@ -89,8 +89,8 @@ export function PetsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <AppHeader colors={colors} />
-      <GRRRBanner title={t('pets.myPets')} subtitle={`${pets.length} furry friends`} />
       <ScrollView showsVerticalScrollIndicator={false}>
+      <GRRRBanner title={t('pets.myPets')} subtitle={`${pets.length} furry friends`} />
       {/* Header */}
       <View style={styles.header}>
         <View>
