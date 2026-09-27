@@ -1,6 +1,9 @@
-import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, SafeAreaView } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, SafeAreaView, Image } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { useAuth } from '../../context/AuthContext';
+import { PetAvatar } from '../../components/PetAvatar';
+import * as WebBrowser from 'expo-web-browser';
 import { usePetSelector } from '../../context/PetSelectorContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -8,28 +11,32 @@ import { grrrCareApi } from '../../lib/grrrr-care-api';
 import { AppHeader } from '../../components/AppHeader';
 import { AnimatedCard } from '../../components/AnimatedCard';
 
+const STORE_URL = 'https://grrrr-store-89il.vercel.app/';
+
+const LOGOS = {
+  grrr: require('../../../assets/logo/grrrr.png'),
+  care: require('../../../assets/logo/care.png'),
+  vet: require('../../../assets/logo/vet.png'),
+  shop: require('../../../assets/logo/shop.png'),
+};
+
 export default function HomeScreen() {
   const router = useRouter();
   const { selectedPetId, selectPet } = usePetSelector();
   const { colors } = useTheme();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [pet, setPet] = useState<any>(null);
   const [pets, setPets] = useState<any[]>([]);
   const [summary, setSummary] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadPets();
-  }, []);
-
-  useEffect(() => {
-    if (selectedPetId) loadPetData();
-  }, [selectedPetId]);
-
   const loadPets = async () => {
+    if (!user) return;
     try {
-      const data = await grrrCareApi.getPets();
+      const data = await grrrCareApi.getPets(user.id);
       setPets(data);
+      if (data.length === 0) setLoading(false);
       if (data.length > 0 && !selectedPetId) {
         selectPet(data[0].id);
       }
@@ -54,7 +61,16 @@ export default function HomeScreen() {
     }
   };
 
-  if (loading) {
+  // Reload on focus so pets added or edited in the profile screen show up here
+  useFocusEffect(
+    useCallback(() => {
+      loadPets();
+      if (selectedPetId) loadPetData();
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user?.id, selectedPetId])
+  );
+
+  if (loading && !pet) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <AppHeader colors={colors} />
@@ -92,7 +108,9 @@ export default function HomeScreen() {
                 },
               ]}
             >
-              <Text style={{ fontSize: 24, marginBottom: 6 }}>🐾</Text>
+              <View style={{ marginBottom: 6 }}>
+                <PetAvatar photoUrl={p.photo_url} species={p.species} size={40} />
+              </View>
               <Text style={[styles.petChipText, { color: selectedPetId === p.id ? 'white' : colors.text }]}>
                 {p.pet_name}
               </Text>
@@ -100,13 +118,16 @@ export default function HomeScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
-      </View>
+      </AnimatedCard>
 
       {/* Hero Card - Pet Profile */}
       {pet && (
         <View style={[styles.heroCard, { backgroundColor: colors.card, borderColor: colors.border }]}>
           <View style={styles.heroHeader}>
-            <View>
+            <TouchableOpacity onPress={() => router.push({ pathname: '/pet/[id]', params: { id: pet.id } })}>
+              <PetAvatar photoUrl={pet.photo_url} species={pet.species} size={64} />
+            </TouchableOpacity>
+            <View style={{ flex: 1, marginLeft: 14 }}>
               <Text style={[styles.petNameBig, { color: colors.text }]}>{pet.pet_name}</Text>
               <Text style={[styles.petBreedBig, { color: colors.textSecondary }]}>
                 {pet.breed}
@@ -152,42 +173,42 @@ export default function HomeScreen() {
       <AnimatedCard style={styles.actionsSection} delay={200}>
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('home.quickActions')}</Text>
 
-        <View style={styles.actionsGrid}>
-          {/* Ask GRRR - Pink */}
-          <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: colors.primary }]}
-            onPress={() => router.push('/(tabs)/chat')}
-          >
-            <Text style={styles.actionEmoji}>💬</Text>
-            <Text style={styles.actionTitle}>Ask GRRR</Text>
-            <Text style={styles.actionDesc}>Ask anything about {pet?.pet_name}</Text>
-          </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.askCard, { backgroundColor: colors.primary, shadowColor: colors.primary }]}
+          onPress={() => router.push('/(tabs)/chat')}
+          activeOpacity={0.85}
+        >
+          <View style={styles.askIconWrap}>
+            <Image source={LOGOS.grrr} style={[styles.askIcon, { tintColor: '#FFFFFF' }]} />
+          </View>
+          <View style={styles.askText}>
+            <Text style={styles.askTitle}>{t('home.askGRRR')}</Text>
+            <Text style={styles.askDesc}>{t('home.askGRRRDesc', { pet: pet?.pet_name ?? '' })}</Text>
+          </View>
+          <Text style={styles.askArrow}>→</Text>
+        </TouchableOpacity>
 
-          {/* Health - Mint */}
-          <TouchableOpacity
-            style={[styles.actionCard, { backgroundColor: colors.secondary }]}
-            onPress={() => router.push('/(tabs)/health')}
-          >
-            <Text style={styles.actionEmoji}>❤️</Text>
-            <Text style={styles.actionTitle}>Health</Text>
-            <Text style={styles.actionDesc}>View medical records</Text>
-          </TouchableOpacity>
-
-          {/* Find Vet - Lavender */}
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.lavender }]}>
-            <Text style={styles.actionEmoji}>📍</Text>
-            <Text style={[styles.actionTitle, { color: colors.text }]}>Find Vet</Text>
-            <Text style={[styles.actionDesc, { color: colors.text }]}>Nearby clinics</Text>
-          </TouchableOpacity>
-
-          {/* Products - Peach */}
-          <TouchableOpacity style={[styles.actionCard, { backgroundColor: colors.peach }]}>
-            <Text style={styles.actionEmoji}>🛒</Text>
-            <Text style={[styles.actionTitle, { color: colors.text }]}>Products</Text>
-            <Text style={[styles.actionDesc, { color: colors.text }]}>Pet supplies</Text>
-          </TouchableOpacity>
+        <View style={styles.tilesRow}>
+          {[
+            { key: 'health', label: t('home.health'), icon: LOGOS.care, onPress: () => router.push('/(tabs)/health') },
+            { key: 'vet', label: t('home.findVet'), icon: LOGOS.vet, onPress: () => router.push('/(tabs)/findvet') },
+            { key: 'shop', label: t('home.products'), icon: LOGOS.shop, onPress: () => WebBrowser.openBrowserAsync(STORE_URL), external: true },
+          ].map(tile => (
+            <TouchableOpacity
+              key={tile.key}
+              style={[styles.tile, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={tile.onPress}
+              activeOpacity={0.8}
+            >
+              <View style={[styles.tileIconWrap, { backgroundColor: colors.primary + '14' }]}>
+                <Image source={tile.icon} style={[styles.tileIcon, { tintColor: colors.primary }]} />
+              </View>
+              <Text style={[styles.tileLabel, { color: colors.text }]} numberOfLines={1}>{tile.label}</Text>
+              {tile.external && <Text style={[styles.tileExternal, { color: colors.textTertiary }]}>↗</Text>}
+            </TouchableOpacity>
+          ))}
         </View>
-      </View>
+      </AnimatedCard>
 
       {/* Recent Activity */}
       {summary && (
@@ -257,11 +278,19 @@ const styles = StyleSheet.create({
   timelineDate: { fontSize: 13, fontWeight: '500' },
 
   actionsSection: { paddingHorizontal: 20, marginBottom: 28 },
-  actionsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  actionCard: { width: '48%', paddingVertical: 18, paddingHorizontal: 14, borderRadius: 16, alignItems: 'center', justifyContent: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 8, elevation: 3 },
-  actionEmoji: { fontSize: 28, marginBottom: 8 },
-  actionTitle: { fontSize: 13, fontWeight: '700', color: 'white', textAlign: 'center', marginBottom: 2 },
-  actionDesc: { fontSize: 11, color: 'rgba(255,255,255,0.8)', textAlign: 'center' },
+  askCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 18, borderRadius: 22, marginBottom: 12, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.3, shadowRadius: 16, elevation: 6 },
+  askIconWrap: { width: 56, height: 56, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.18)', justifyContent: 'center', alignItems: 'center' },
+  askIcon: { width: 34, height: 34, resizeMode: 'contain' },
+  askText: { flex: 1 },
+  askTitle: { fontSize: 18, fontWeight: '800', color: '#FFFFFF', marginBottom: 2 },
+  askDesc: { fontSize: 13, fontWeight: '500', color: 'rgba(255,255,255,0.85)' },
+  askArrow: { fontSize: 22, fontWeight: '700', color: '#FFFFFF' },
+  tilesRow: { flexDirection: 'row', gap: 12 },
+  tile: { flex: 1, alignItems: 'center', paddingVertical: 16, paddingHorizontal: 8, borderRadius: 18, borderWidth: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, elevation: 2 },
+  tileIconWrap: { width: 52, height: 52, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginBottom: 10 },
+  tileIcon: { width: 30, height: 30, resizeMode: 'contain' },
+  tileLabel: { fontSize: 13, fontWeight: '700' },
+  tileExternal: { position: 'absolute', top: 8, right: 10, fontSize: 12, fontWeight: '700' },
 
   activitySection: { paddingHorizontal: 20, marginBottom: 20 },
   activityHeader: { marginBottom: 12 },

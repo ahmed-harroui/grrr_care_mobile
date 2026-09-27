@@ -1,24 +1,68 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { DarkTheme, DefaultTheme, ThemeProvider, Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useColorScheme, ActivityIndicator, View } from 'react-native';
-import { Stack } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { PetSelectorProvider } from '@/context/PetSelectorContext';
-import { ThemeProvider as GRRRThemeProvider } from '@/context/ThemeContext';
+import { ThemeProvider as GRRRThemeProvider, useTheme } from '@/context/ThemeContext';
 import { LanguageProvider } from '@/context/LanguageContext';
 import { AuthProvider, useAuth } from '@/context/AuthContext';
 import LoginScreen from '@/screens/LoginScreen';
+import { PetOnboardingScreen, onboardingSkipKey } from '@/screens/PetOnboardingScreen';
+import { grrrCareApi } from '@/lib/grrrr-care-api';
+import { Colors } from '@/constants/theme';
 
 SplashScreen.preventAutoHideAsync();
+
+// Accounts that already have pets (e.g. from the GRRRR app) go straight in; new ones get the pet setup unless they skipped it
+function SignedInApp({ userId }: { userId: string }) {
+  const { colors } = useTheme();
+  const [status, setStatus] = useState<'checking' | 'onboarding' | 'ready'>('checking');
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      const skipped = await AsyncStorage.getItem(onboardingSkipKey(userId)).catch(() => null);
+      const pets = skipped ? null : await grrrCareApi.getPets(userId).catch(() => null);
+      if (active) setStatus(pets && pets.length === 0 ? 'onboarding' : 'ready');
+    })();
+    return () => {
+      active = false;
+    };
+  }, [userId]);
+
+  if (status === 'checking') {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
+        <ActivityIndicator color={colors.primary} size="large" />
+      </View>
+    );
+  }
+
+  if (status === 'onboarding') {
+    return <PetOnboardingScreen userId={userId} onDone={() => setStatus('ready')} />;
+  }
+
+  return (
+    <PetSelectorProvider>
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="pet/[id]" />
+      </Stack>
+    </PetSelectorProvider>
+  );
+}
 
 function RootLayoutContent() {
   const colorScheme = useColorScheme();
   const { user, loading } = useAuth();
 
   if (loading) {
+    const palette = Colors[colorScheme === 'dark' ? 'dark' : 'light'];
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF8F2' }}>
-        <ActivityIndicator color="#E75480" size="large" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: palette.background }}>
+        <ActivityIndicator color={palette.primary} size="large" />
       </View>
     );
   }
@@ -27,15 +71,7 @@ function RootLayoutContent() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <GRRRThemeProvider>
         <LanguageProvider>
-          {!user ? (
-            <LoginScreen />
-          ) : (
-            <PetSelectorProvider>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(tabs)" />
-              </Stack>
-            </PetSelectorProvider>
-          )}
+          {!user ? <LoginScreen /> : <SignedInApp key={user.id} userId={user.id} />}
         </LanguageProvider>
       </GRRRThemeProvider>
     </ThemeProvider>

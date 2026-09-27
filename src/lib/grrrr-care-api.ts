@@ -3,6 +3,61 @@ import { DEMO_PETS, DEMO_VACCINATIONS, DEMO_MEDICATIONS, DEMO_VET_VISITS } from 
 
 const API_BASE = 'http://192.168.56.1:3000/api';
 
+export interface PetFields {
+  pet_name?: string;
+  species?: string;
+  breed?: string;
+  age?: number;
+  gender?: string | null;
+  photo_url?: string;
+  weight?: number | null;
+  birthday?: string | null;
+  color?: string | null;
+  microchip?: string | null;
+  sterilized?: boolean | null;
+  allergies?: string | null;
+  care_notes?: string | null;
+  distinguishing_marks?: string | null;
+  tattoo?: string | null;
+  registration_number?: string | null;
+  owner_name?: string | null;
+  owner_phone?: string | null;
+  owner_email?: string | null;
+  owner_address?: string | null;
+}
+
+export const DOCUMENT_TYPES = [
+  'passport',
+  'microchip_certificate',
+  'adoption',
+  'ownership',
+  'registration',
+  'import_export',
+  'other',
+] as const;
+
+export type DocumentType = (typeof DOCUMENT_TYPES)[number];
+
+export interface PetDocumentFields {
+  doc_type: DocumentType;
+  title?: string | null;
+  document_number?: string | null;
+  issued_on?: string | null;
+  expires_on?: string | null;
+  issuer?: string | null;
+  notes?: string | null;
+  file_path?: string | null;
+  file_mime?: string | null;
+}
+
+export interface PetDocument extends PetDocumentFields {
+  id: string;
+  pet_id: string;
+  created_at: string;
+}
+
+const demoDocuments: PetDocument[] = [];
+
 let demoMode = false;
 
 export const setDemoMode = (enabled: boolean) => {
@@ -49,6 +104,130 @@ export const grrrCareApi = {
       return null;
     }
     return data;
+  },
+
+  async createPet(ownerId: string, fields: PetFields) {
+    if (demoMode) {
+      const pet = { ...fields, id: `demo-pet-${Date.now()}`, owner_id: ownerId, created_at: new Date().toISOString() };
+      (DEMO_PETS as any[]).unshift(pet);
+      return pet;
+    }
+
+    const { data, error } = await supabase
+      .from('pets')
+      .insert({ ...fields, owner_id: ownerId })
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  async updatePet(petId: string, fields: PetFields) {
+    if (demoMode) {
+      const pet = (DEMO_PETS as any[]).find(p => p.id === petId);
+      if (pet) Object.assign(pet, fields);
+      return pet;
+    }
+
+    const { data, error } = await supabase
+      .from('pets')
+      .update({ ...fields, updated_at: new Date().toISOString() })
+      .eq('id', petId)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  },
+
+  // Returns a public https URL so the photo also shows in the GRRRR app and on other devices
+  async uploadPetPhoto(ownerId: string, base64: string, mimeType = 'image/jpeg') {
+    if (demoMode) {
+      return `data:${mimeType};base64,${base64}`;
+    }
+
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const path = `${ownerId}/${Date.now()}.${ext}`;
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const { error } = await supabase.storage
+      .from('pet-photos')
+      .upload(path, bytes, { contentType: mimeType, upsert: false });
+    if (error) throw error;
+    return supabase.storage.from('pet-photos').getPublicUrl(path).data.publicUrl;
+  },
+
+  // Official documents (passport, certificates...). Files sit in the private pet-documents bucket.
+  async getPetDocuments(petId: string): Promise<PetDocument[]> {
+    if (demoMode) {
+      return demoDocuments.filter(d => d.pet_id === petId);
+    }
+
+    const { data, error } = await supabase
+      .from('pet_documents')
+      .select('*')
+      .eq('pet_id', petId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data || [];
+  },
+
+  async savePetDocument(petId: string, fields: PetDocumentFields, documentId?: string): Promise<PetDocument> {
+    if (demoMode) {
+      const existing = documentId ? demoDocuments.find(d => d.id === documentId) : undefined;
+      if (existing) return Object.assign(existing, fields);
+      const doc = { ...fields, id: `demo-doc-${Date.now()}`, pet_id: petId, created_at: new Date().toISOString() };
+      demoDocuments.unshift(doc);
+      return doc;
+    }
+
+    const query = documentId
+      ? supabase.from('pet_documents').update({ ...fields, updated_at: new Date().toISOString() }).eq('id', documentId)
+      : supabase.from('pet_documents').insert({ ...fields, pet_id: petId });
+    const { data, error } = await query.select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deletePetDocument(doc: PetDocument) {
+    if (demoMode) {
+      const index = demoDocuments.findIndex(d => d.id === doc.id);
+      if (index >= 0) demoDocuments.splice(index, 1);
+      return;
+    }
+
+    const { error } = await supabase.from('pet_documents').delete().eq('id', doc.id);
+    if (error) throw error;
+    if (doc.file_path) {
+      await this.removeDocumentFile(doc.file_path);
+    }
+  },
+
+  async removeDocumentFile(filePath: string) {
+    if (demoMode || filePath.startsWith('data:')) return;
+    const { error } = await supabase.storage.from('pet-documents').remove([filePath]);
+    if (error) throw error;
+  },
+
+  // Returns the storage path (not a URL): the bucket is private, use getDocumentFileUrl to view it
+  async uploadDocumentFile(ownerId: string, base64: string, mimeType = 'image/jpeg') {
+    if (demoMode) {
+      return `data:${mimeType};base64,${base64}`;
+    }
+
+    const ext = mimeType.split('/')[1] || 'jpg';
+    const path = `${ownerId}/${Date.now()}.${ext}`;
+    const bytes = Uint8Array.from(atob(base64), c => c.charCodeAt(0));
+    const { error } = await supabase.storage
+      .from('pet-documents')
+      .upload(path, bytes, { contentType: mimeType, upsert: false });
+    if (error) throw error;
+    return path;
+  },
+
+  async getDocumentFileUrl(filePath: string) {
+    if (filePath.startsWith('data:')) return filePath;
+    const { data, error } = await supabase.storage.from('pet-documents').createSignedUrl(filePath, 60 * 60);
+    if (error) throw error;
+    return data.signedUrl;
   },
 
   // Vaccinations
@@ -294,8 +473,32 @@ export const grrrCareApi = {
     }
   },
 
-  // AI Chat with Knowledge Base Integration
-  async sendChatMessage(petId: string, message: string, style: string = 'care') {
+  // Claude-backed assistant (Edge Function grrr-chat). Throws with a user-facing message on failure or quota.
+  async sendChatMessage(
+    petId: string,
+    message: string,
+    style: string = 'care',
+    options: { language?: string; history?: { role: 'user' | 'assistant'; text: string }[] } = {}
+  ): Promise<{ response: string; sources: string[]; style: string; remaining?: number }> {
+    if (demoMode) {
+      return this.localChatAnswer(petId, message, style);
+    }
+
+    const { data, error } = await supabase.functions.invoke('grrr-chat', {
+      body: { petId, message, style, language: options.language, history: options.history ?? [] },
+    });
+    if (error) {
+      let detail: string | undefined;
+      try {
+        detail = (await (error as any).context?.json())?.error;
+      } catch {}
+      throw new Error(detail || error.message);
+    }
+    return data;
+  },
+
+  // Keyword answers from the knowledge base, used offline in demo mode (no account, so no Edge Function)
+  async localChatAnswer(petId: string, message: string, style: string = 'care') {
     try {
       // Get pet species for knowledge search
       const pet = await this.getPetById(petId);
@@ -454,6 +657,7 @@ export const grrrCareApi = {
         console.warn('All partners fetch error:', error);
         return [];
       }
+      console.log('Partners loaded:', data?.length || 0);
       return data || [];
     } catch (error) {
       console.warn('All partners error:', error);
