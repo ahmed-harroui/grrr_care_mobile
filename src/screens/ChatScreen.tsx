@@ -13,12 +13,15 @@ import {
 } from 'react-native';
 import { usePetSelector } from '../context/PetSelectorContext';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
 import { AppHeader } from '../components/AppHeader';
+import { GRRRBanner } from '../components/GRRRBanner';
 
 export function ChatScreen({ navigation }: any) {
   const { selectedPetId } = usePetSelector();
   const { colors } = useTheme();
+  const { t } = useLanguage();
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -90,6 +93,7 @@ export function ChatScreen({ navigation }: any) {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <AppHeader colors={colors} />
+      <GRRRBanner title={t('chat.askGRRR')} subtitle="Ask about your pet" />
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.innerContainer, { backgroundColor: colors.background }]}
