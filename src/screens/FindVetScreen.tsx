@@ -3,7 +3,6 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
-import { PartnersMapView } from './PartnersMapView';
 
 interface Partner {
   id: string;
@@ -27,7 +26,6 @@ export function FindVetScreen() {
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; city?: string } | null>(null);
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   const calculateDistance = (lat1: number, lon1: number, lat2?: number, lon2?: number): number | undefined => {
     if (!lat2 || !lon2) return undefined;
@@ -154,26 +152,44 @@ export function FindVetScreen() {
     );
   }
 
-  // Map view
-  if (viewMode === 'map') {
-    return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
-        <View style={[styles.mapHeader, { backgroundColor: colors.card }]}>
-          <TouchableOpacity
-            style={[styles.toggleBtn, { backgroundColor: colors.primary }]}
-            onPress={() => setViewMode('list')}
-          >
-            <Text style={styles.toggleBtnText}>📋 List</Text>
-          </TouchableOpacity>
-        </View>
-        <PartnersMapView
-          partners={partners}
-          userLocation={userLocation || undefined}
-          onPartnerPress={(partner) => handleOpenMap(partner.name, partner.latitude, partner.longitude, partner.address)}
-        />
-      </View>
+  const handleViewAllOnMap = () => {
+    if (partners.length === 0) {
+      Alert.alert('No partners', 'No partners available to view on map');
+      return;
+    }
+
+    const validPartners = partners.filter(p => p.latitude && p.longitude);
+    if (validPartners.length === 0) {
+      Alert.alert('No location data', 'Partners do not have location data');
+      return;
+    }
+
+    const bounds = validPartners.reduce(
+      (acc, p) => ({
+        minLat: Math.min(acc.minLat, p.latitude!),
+        maxLat: Math.max(acc.maxLat, p.latitude!),
+        minLon: Math.min(acc.minLon, p.longitude!),
+        maxLon: Math.max(acc.maxLon, p.longitude!),
+      }),
+      {
+        minLat: validPartners[0].latitude!,
+        maxLat: validPartners[0].latitude!,
+        minLon: validPartners[0].longitude!,
+        maxLon: validPartners[0].longitude!,
+      }
     );
-  }
+
+    const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+    const centerLon = (bounds.minLon + bounds.maxLon) / 2;
+
+    const url = Platform.OS === 'ios'
+      ? `maps://maps.apple.com/?ll=${centerLat},${centerLon}&q=pet%20services`
+      : `https://www.google.com/maps/search/pet+services/@${centerLat},${centerLon},12z`;
+
+    Linking.openURL(url).catch(() => {
+      Alert.alert('Error', 'Could not open maps');
+    });
+  };
 
   return (
     <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
@@ -188,7 +204,7 @@ export function FindVetScreen() {
           </View>
           <TouchableOpacity
             style={[styles.toggleBtn, { backgroundColor: colors.primary }]}
-            onPress={() => setViewMode('map')}
+            onPress={handleViewAllOnMap}
           >
             <Text style={styles.toggleBtnText}>🗺️</Text>
           </TouchableOpacity>
@@ -307,14 +323,6 @@ export function FindVetScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centerContent: { justifyContent: 'center', alignItems: 'center' },
-
-  mapHeader: {
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
 
   header: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 16 },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 },
