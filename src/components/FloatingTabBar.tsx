@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import {
   View,
+  Text,
   TouchableOpacity,
   StyleSheet,
   Platform,
@@ -18,7 +19,7 @@ interface FloatingTabBarProps {
 const LOGO_MAP: Record<string, any> = {
   index: require('../../assets/logo/home.png'),
   findvet: require('../../assets/logo/vet.png'),
-  chat: require('../../assets/logo/grrrr.png'),
+  chat: { uri: 'file:///./assets/logo/grrrr.png' },
   health: require('../../assets/logo/care.png'),
   pets: require('../../assets/logo/pets.png'),
   settings: require('../../assets/logo/parametre.png'),
