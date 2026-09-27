@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Alert, Platform } from 'react-native';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Alert, Platform, SafeAreaView } from 'react-native';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
@@ -175,7 +175,8 @@ export function FindVetScreen() {
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <ScrollView showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
         <View style={styles.headerContent}>
@@ -301,6 +302,7 @@ export function FindVetScreen() {
 
       <View style={{ height: 80 }} />
     </ScrollView>
+    </SafeAreaView>
   );
 }
 
