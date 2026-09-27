@@ -13,7 +13,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
 import { AppHeader } from '../components/AppHeader';
-import { GRRRBanner } from '../components/GRRRBanner';
 
 export function PetsScreen() {
   const { selectedPetId, selectPet } = usePetSelector();
@@ -57,7 +56,6 @@ export function PetsScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <AppHeader colors={colors} />
-        <GRRRBanner title={t('pets.myPets')} subtitle="Loading your pets..." />
         <View style={[styles.centerContainer]}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -69,7 +67,6 @@ export function PetsScreen() {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
         <AppHeader colors={colors} />
-        <GRRRBanner title={t('pets.myPets')} subtitle="No pets yet" />
         <View style={[styles.emptyContainer, { backgroundColor: colors.background }]}>
         <View style={styles.emptyContent}>
           <Text style={styles.emptyEmoji}>🐾</Text>
@@ -90,7 +87,6 @@ export function PetsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <AppHeader colors={colors} />
       <ScrollView showsVerticalScrollIndicator={false}>
-      <GRRRBanner title={t('pets.myPets')} subtitle={`${pets.length} furry friends`} />
       {/* Header */}
       <View style={styles.header}>
         <View>

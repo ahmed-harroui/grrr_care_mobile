@@ -16,7 +16,6 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
 import { AppHeader } from '../components/AppHeader';
-import { GRRRBanner } from '../components/GRRRBanner';
 
 export function ChatScreen({ navigation }: any) {
   const { selectedPetId } = usePetSelector();
@@ -97,7 +96,6 @@ export function ChatScreen({ navigation }: any) {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={[styles.innerContainer, { backgroundColor: colors.background }]}
       >
-        <GRRRBanner title={t('chat.askGRRR')} subtitle="Ask about your pet" />
         {/* Header */}
         <View style={[styles.header, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
         <View style={styles.headerTop}>

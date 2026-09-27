@@ -158,7 +158,8 @@ export function FindVetScreen() {
   // Map view
   if (viewMode === 'map') {
     return (
-      <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+        <AppHeader colors={colors} />
         <View style={[styles.mapHeader, { backgroundColor: colors.card, borderBottomColor: colors.border }]}>
           <TouchableOpacity
             style={[styles.toggleBtn, { backgroundColor: colors.primary }]}
@@ -171,16 +172,14 @@ export function FindVetScreen() {
           </Text>
         </View>
         <PartnersMapView partners={partners} userLocation={userLocation || undefined} />
-      </View>
+      </SafeAreaView>
     );
   }
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-      {/* Logo Banner */}
       <AppHeader colors={colors} />
-
+      <ScrollView showsVerticalScrollIndicator={false}>
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
         <View style={styles.headerContent}>
