@@ -4,6 +4,7 @@ import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
 import { PartnersMapView } from './PartnersMapView';
+import { AppHeader } from '../components/AppHeader';
 
 interface Partner {
   id: string;
@@ -178,10 +179,7 @@ export function FindVetScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView showsVerticalScrollIndicator={false}>
       {/* Logo Banner */}
-      <View style={[styles.logoBanner, { backgroundColor: colors.card }]}>
-        <Text style={[styles.logoText, { color: colors.primary }]}>🐾 GRRR Care</Text>
-        <Text style={[styles.logoSubtext, { color: colors.textSecondary }]}>Pet Care Companion</Text>
-      </View>
+      <AppHeader colors={colors} />
 
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
@@ -315,23 +313,6 @@ export function FindVetScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centerContent: { justifyContent: 'center', alignItems: 'center' },
-
-  logoBanner: {
-    paddingHorizontal: 20,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
-  },
-  logoText: {
-    fontSize: 20,
-    fontWeight: '800',
-    letterSpacing: -0.5,
-    marginBottom: 2,
-  },
-  logoSubtext: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
 
   header: {
     paddingHorizontal: 20,
