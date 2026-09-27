@@ -2,11 +2,9 @@ import { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Alert, Platform, SafeAreaView } from 'react-native';
 import * as Location from 'expo-location';
 import { useTheme } from '../context/ThemeContext';
-import { useLanguage } from '../context/LanguageContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
 import { PartnersMapView } from './PartnersMapView';
 import { AppHeader } from '../components/AppHeader';
-import { GRRRBanner } from '../components/GRRRBanner';
 
 interface Partner {
   id: string;
@@ -26,7 +24,6 @@ interface Partner {
 
 export function FindVetScreen() {
   const { colors } = useTheme();
-  const { t } = useLanguage();
   const [featured, setFeatured] = useState<Partner | null>(null);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
@@ -183,7 +180,6 @@ export function FindVetScreen() {
       <ScrollView showsVerticalScrollIndicator={false}>
       {/* Logo Banner */}
       <AppHeader colors={colors} />
-      <GRRRBanner title={t('findVet.findVet')} subtitle="Find trusted partners" />
 
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
