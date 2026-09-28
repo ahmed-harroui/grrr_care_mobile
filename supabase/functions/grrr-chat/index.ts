@@ -18,6 +18,9 @@ const MODEL = Deno.env.get('CHAT_MODEL') ?? 'claude-haiku-4-5-20251001';
 const DAILY_LIMIT = Number(Deno.env.get('CHAT_DAILY_LIMIT') ?? 30);
 const MAX_MESSAGE = 1000;
 const MAX_HISTORY = 6;
+// Size caps for the cached prompt: knowledge entries per species, and the content of each pet document
+const MAX_KNOWLEDGE_CHARS = 80_000;
+const MAX_DOC_CONTENT = 6_000;
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -111,8 +114,9 @@ function petContext(pet: Record<string, any>, records: PetRecords, today: string
     const line = `• ${d.title || DOC_LABELS[d.doc_type] || d.doc_type}${d.issued_on ? `, issued ${day(d.issued_on)}` : ''}${
       expires ? `, expires ${expires}${expires < today ? ' (EXPIRED)' : ''}` : ''
     }`;
-    // Notes grrr-doc-read took from the attached file, indented under the document
-    const content = d.ai_summary ? `\n  Content of the file:\n${String(d.ai_summary).replace(/^/gm, '    ')}` : '';
+    // What grrr-doc-read took from the attached file (summary only for files read before ai_content existed)
+    const read = d.ai_content || d.ai_summary;
+    const content = read ? `\n  Content of the file:\n${String(read).slice(0, MAX_DOC_CONTENT).replace(/^/gm, '    ')}` : '';
     return line + content;
   });
 
@@ -129,18 +133,11 @@ function petContext(pet: Record<string, any>, records: PetRecords, today: string
 
 // Identical for every owner of the same species, so it is cached and billed at ~10% after the first message
 function knowledgePrompt(docs: any[], guides: any[]) {
-  const knowledge = docs
-    .map(
-      (d, i) =>
-        `[${i + 1}] ${d.title} (${d.category})\n${d.summary}\n${d.content}` +
-        (list(d.key_points) ? `\nKey points: ${list(d.key_points)}` : '') +
-        (list(d.warnings) ? `\nWarnings: ${list(d.warnings)}` : '')
-    )
-    .join('\n\n');
+  const knowledge = docs.map((d, i) => `[${i + 1}] ${d.title} (${d.category})\n${d.content}`).join('\n\n');
   const emergencies = guides
     .map(
       (g, i) =>
-        `[E${i + 1}] ${g.condition} (severity: ${g.severity})\nSymptoms: ${list(g.symptoms)}\nImmediate actions: ${list(g.immediate_actions)}\nDo NOT: ${list(g.do_not_do)}\nCall the vet when: ${g.when_to_call_vet}`
+        `[E${i + 1}] ${g.title}\nSymptoms: ${list(g.symptoms)}\nImmediate actions: ${list(g.immediate_actions)}\nCall the vet when: ${g.when_to_call_vet}`
     )
     .join('\n\n');
 
@@ -227,12 +224,15 @@ Deno.serve(async req => {
   const species = String(pet.species || '').toLowerCase();
   const today = new Date().toISOString().slice(0, 10);
   // Stable ordering matters: the knowledge block is cached, and any reordering would miss the cache
-  const [{ data: allDocs }, { data: allGuides }, vaccinations, medications, visits, documents] = await Promise.all([
-    admin.from('knowledge_documents').select('title, category, summary, content, key_points, warnings, species').order('title'),
+  const [allDocs, allGuides, vaccinations, medications, visits, documents] = await Promise.all([
+    // Ordered by id as a tiebreak so the cached knowledge block stays byte-identical between messages
+    admin.from('knowledge_documents').select('title, category, content, species').eq('is_published', true).order('title').order('id'),
     admin
       .from('emergency_guides')
-      .select('condition, severity, symptoms, immediate_actions, do_not_do, when_to_call_vet, species')
-      .order('condition'),
+      .select('title, symptoms, immediate_actions, when_to_call_vet, species')
+      .eq('is_published', true)
+      .order('title')
+      .order('id'),
     admin.from('vaccinations').select('vaccine, date, next_due').eq('pet_id', pet.id).order('date', { ascending: false }).limit(15),
     admin
       .from('medications')
@@ -242,7 +242,11 @@ Deno.serve(async req => {
       .limit(10),
     admin.from('vet_visits').select('date, reason, diagnosis').eq('pet_id', pet.id).order('date', { ascending: false }).limit(5),
     // Table comes from migration 010; a missing table just means no documents
-    admin.from('pet_documents').select('doc_type, title, issued_on, expires_on, ai_summary').eq('pet_id', pet.id).order('created_at'),
+    admin
+      .from('pet_documents')
+      .select('doc_type, title, issued_on, expires_on, ai_summary, ai_content')
+      .eq('pet_id', pet.id)
+      .order('created_at'),
   ]);
   const records: PetRecords = {
     vaccinations: vaccinations.data ?? [],
@@ -250,12 +254,25 @@ Deno.serve(async req => {
     visits: visits.data ?? [],
     documents: documents.data ?? [],
   };
+  if (allDocs.error || allGuides.error) console.error('knowledge query error', allDocs.error ?? allGuides.error);
+  // Entries with no species (from reference files about pets in general) apply to every pet
   const forSpecies = (rows: any[] | null) => {
-    const matching = (rows ?? []).filter(r => Array.isArray(r.species) && r.species.some((s: string) => species.includes(s) || s.includes(species)));
-    return matching.length ? matching : rows ?? [];
+    const isFor = (r: any) => Array.isArray(r.species) && r.species.some((s: string) => species.includes(s) || s.includes(species));
+    const general = (r: any) => !Array.isArray(r.species) || r.species.length === 0;
+    const all = rows ?? [];
+    return all.some(isFor) ? all.filter(r => isFor(r) || general(r)) : all;
   };
-  const docs = forSpecies(allDocs).slice(0, 24);
-  const guides = forSpecies(allGuides).slice(0, 5);
+  const docs: any[] = [];
+  let knowledgeChars = 0;
+  for (const d of forSpecies(allDocs.data)) {
+    knowledgeChars += d.title.length + d.content.length;
+    if (knowledgeChars > MAX_KNOWLEDGE_CHARS) {
+      console.warn(`knowledge over ${MAX_KNOWLEDGE_CHARS} chars for ${species}: later entries left out`);
+      break;
+    }
+    docs.push(d);
+  }
+  const guides = forSpecies(allGuides.data).slice(0, 5);
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -296,7 +313,7 @@ Deno.serve(async req => {
   const cited = new Set([...text.matchAll(/\[(E?)(\d+)\]/g)].map(m => `${m[1]}${m[2]}`));
   const sources = [
     ...docs.filter((_, i) => cited.has(String(i + 1))).map(d => d.title),
-    ...guides.filter((_, i) => cited.has(`E${i + 1}`)).map(g => `🚨 ${g.condition}`),
+    ...guides.filter((_, i) => cited.has(`E${i + 1}`)).map(g => `🚨 ${g.title}`),
   ];
 
   // Runs after the response is sent so the owner never waits on it

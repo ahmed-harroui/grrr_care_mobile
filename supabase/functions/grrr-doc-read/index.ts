@@ -1,5 +1,5 @@
-// Reads the files attached to a pet's official documents (PDF, photo, scan) once and stores a short summary.
-// grrr-chat then uses the summary, so files are never re-sent to the model.
+// Reads the files attached to a pet's official documents (PDF, photo, scan) once and stores a short summary
+// for the owner (ai_summary) and the full content for the chat (ai_content), so files are never re-sent to the model.
 // Secrets: ANTHROPIC_API_KEY (required), CHAT_MODEL, CHAT_DAILY_LIMIT (shared with grrr-chat: each file read counts as one message).
 // Deploy with --no-verify-jwt: the user is verified below.
 import { createClient } from 'npm:@supabase/supabase-js@2';
@@ -30,15 +30,30 @@ const DOC_LABELS: Record<string, string> = {
   other: 'Other certificate',
 };
 
-const systemPrompt = (lang: string) => `You read an official pet document for GRRR, the pet-care assistant of the GRRR Care app. Your notes are all GRRR will know about this file, and the owner sees them too, so keep every fact that could matter for the pet's care.
+const systemPrompt = (lang: string) => `You read a pet document for GRRR, the pet-care assistant of the GRRR Care app. What you write is all GRRR will know about this file: it answers the owner's questions from it, so nothing that could matter may be lost.
 
-Write in ${lang === 'en' ? 'English' : 'French'}, plain text, one fact per line starting with "• ", at most 120 words:
+Write in ${lang === 'en' ? 'English' : 'French'}, plain text, one fact per line starting with "• ".
+
+summary (shown to the owner on the document, at most 120 words):
 • what the document is and who issued it
 • vaccinations with dates and validity (rabies especially), antiparasitic treatments, health checks, conditions, diagnoses or allergies noted
 • issue and expiry dates, and travel or entry requirements it covers
 • identification present (write "microchip recorded", never the number)
 
-Never copy identifier numbers, owner names, addresses, phone numbers, emails or signatures. If the file is unreadable or is not about a pet, reply exactly UNREADABLE.`;
+content (used by GRRR to answer questions, up to 1500 words): everything in the document that could answer a question about the pet, in the document's order. Every vaccination and treatment with product name, date and validity; every test, result, measure and weight; diagnoses, prescriptions and dosages as written, instructions and recommendations; dates, deadlines and travel or entry rules. Turn tables into one line per row. Leave out only blank fields, legal boilerplate and page decoration.
+
+In both, never copy identifier numbers, owner names, addresses, phone numbers, emails or signatures. If the file is unreadable or is not about a pet, set readable to false and leave the other fields empty.`;
+
+const OUTPUT_SCHEMA = {
+  type: 'object',
+  properties: {
+    readable: { type: 'boolean' },
+    summary: { type: 'string' },
+    content: { type: 'string' },
+  },
+  required: ['readable', 'summary', 'content'],
+  additionalProperties: false,
+};
 
 type Kind = 'image' | 'pdf' | 'text' | null;
 
@@ -57,13 +72,19 @@ function fileBlock(kind: Exclude<Kind, null>, mime: string, bytes: Uint8Array) {
   return { type: 'text', text: new TextDecoder().decode(bytes.slice(0, MAX_TEXT_BYTES)) };
 }
 
-async function summarize(apiKey: string, block: unknown, doc: Record<string, any>, lang: string) {
+async function readDocument(
+  apiKey: string,
+  block: unknown,
+  doc: Record<string, any>,
+  lang: string
+): Promise<{ readable: boolean; summary: string; content: string }> {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'content-type': 'application/json' },
     body: JSON.stringify({
       model: MODEL,
-      max_tokens: 400,
+      max_tokens: 4000,
+      output_config: { format: { type: 'json_schema', schema: OUTPUT_SCHEMA } },
       system: systemPrompt(lang),
       messages: [
         {
@@ -80,11 +101,10 @@ async function summarize(apiKey: string, block: unknown, doc: Record<string, any
   const data = await res.json();
   const u = data.usage ?? {};
   console.log(`doc ${doc.id} usage input=${u.input_tokens} output=${u.output_tokens}`);
-  return (data.content ?? [])
-    .filter((b: any) => b.type === 'text')
-    .map((b: any) => b.text)
-    .join('\n')
-    .trim();
+  // A cut-off or refused answer doesn't match the schema
+  if (data.stop_reason !== 'end_turn') throw new Error(`stopped: ${data.stop_reason}`);
+  const text = (data.content ?? []).find((b: any) => b.type === 'text')?.text;
+  return JSON.parse(text);
 }
 
 Deno.serve(async req => {
@@ -127,10 +147,10 @@ Deno.serve(async req => {
   const results: { id: string; status: string }[] = [];
 
   for (const doc of pending) {
-    const save = (status: string, summary: string | null = null) =>
+    const save = (status: string, summary: string | null = null, content: string | null = null) =>
       admin
         .from('pet_documents')
-        .update({ ai_summary: summary, ai_summary_status: status, ai_summary_path: doc.file_path })
+        .update({ ai_summary: summary, ai_content: content, ai_summary_status: status, ai_summary_path: doc.file_path })
         .eq('id', doc.id);
 
     const kind = kindOf(doc.file_mime, doc.file_name);
@@ -152,9 +172,13 @@ Deno.serve(async req => {
       const { data: file, error: downloadError } = await admin.storage.from('pet-documents').download(doc.file_path);
       if (downloadError || !file) throw downloadError ?? new Error('download failed');
       const bytes = new Uint8Array(await file.arrayBuffer());
-      const summary = await summarize(apiKey, fileBlock(kind, doc.file_mime || 'image/jpeg', bytes), doc, body.language);
-      const readable = summary && !/^UNREADABLE\b/i.test(summary);
-      await save(readable ? 'done' : 'failed', readable ? summary.slice(0, 1500) : null);
+      const read = await readDocument(apiKey, fileBlock(kind, doc.file_mime || 'image/jpeg', bytes), doc, body.language);
+      const readable = read.readable && !!read.summary.trim();
+      await save(
+        readable ? 'done' : 'failed',
+        readable ? read.summary.trim().slice(0, 1500) : null,
+        readable ? (read.content.trim() || read.summary.trim()).slice(0, 12000) : null
+      );
       results.push({ id: doc.id, status: readable ? 'done' : 'failed' });
     } catch (e) {
       console.error('doc read error', doc.id, e);
