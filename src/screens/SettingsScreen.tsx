@@ -2,6 +2,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Swi
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { AppHeader } from '../components/AppHeader';
+import { ProfileSection } from '../components/ProfileSection';
 
 export function SettingsScreen() {
   const { colors, isDark, toggleTheme, themeMode, setThemeMode } = useTheme();
@@ -11,6 +12,8 @@ export function SettingsScreen() {
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <AppHeader colors={colors} />
       <ScrollView showsVerticalScrollIndicator={false}>
+        <ProfileSection />
+
         {/* Appearance Section */}
         <View style={styles.section}>
           <Text style={[styles.sectionTitle, { color: colors.text }]}>{t('settings.appearance')}</Text>
