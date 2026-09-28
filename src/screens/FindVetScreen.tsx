@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Alert, Platform, SafeAreaView } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator, Linking, Alert, Platform, SafeAreaView, RefreshControl } from 'react-native';
 import * as Location from 'expo-location';
+import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
 import { PartnersMapView } from './PartnersMapView';
@@ -17,7 +18,7 @@ interface Partner {
   website?: string;
   latitude?: number;
   longitude?: number;
-  rating: number;
+  rating: number | null;
   services?: any;
   distance?: number;
 }
@@ -31,7 +32,7 @@ export function FindVetScreen() {
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
   const calculateDistance = (lat1: number, lon1: number, lat2?: number, lon2?: number): number | undefined => {
-    if (!lat2 || !lon2) return undefined;
+    if (lat2 == null || lon2 == null) return undefined;
 
     const R = 3959;
     const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -43,26 +44,29 @@ export function FindVetScreen() {
     return parseFloat((R * c).toFixed(1));
   };
 
-  const loadPartners = async () => {
+  // The location is passed in: the state set just before isn't visible yet in this call
+  const loadPartners = async (location: typeof userLocation, { quiet = false } = {}) => {
     try {
-      setLoading(true);
+      if (!quiet) setLoading(true);
       const [featuredData, allPartners] = await Promise.all([
         grrrCareApi.getFeaturedPartner(),
         grrrCareApi.getAllPartners(),
       ]);
 
-      console.log('Featured:', featuredData?.name, 'Partners:', allPartners.length, 'User location:', userLocation?.city);
+      console.log('Featured:', featuredData?.name, 'Partners:', allPartners.length, 'User location:', location?.city);
 
       let enhancedPartners = allPartners;
-      if (userLocation) {
+      if (location) {
         enhancedPartners = allPartners
           .map(p => ({
             ...p,
-            distance: calculateDistance(userLocation.latitude, userLocation.longitude, p.latitude, p.longitude),
+            distance: calculateDistance(location.latitude, location.longitude, p.latitude, p.longitude),
           }))
           .sort((a, b) => {
-            if (a.distance && b.distance) return a.distance - b.distance;
-            return 0;
+            // Partners without coordinates go last
+            if (a.distance == null) return b.distance == null ? 0 : 1;
+            if (b.distance == null) return -1;
+            return a.distance - b.distance;
           });
       }
 
@@ -76,11 +80,12 @@ export function FindVetScreen() {
   };
 
   const initializeLocation = async () => {
+    let coords: { latitude: number; longitude: number; city?: string } | null = null;
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === 'granted') {
         const location = await Location.getCurrentPositionAsync({});
-        const coords: { latitude: number; longitude: number; city?: string } = {
+        coords = {
           latitude: location.coords.latitude,
           longitude: location.coords.longitude,
         };
@@ -96,16 +101,35 @@ export function FindVetScreen() {
 
         setUserLocation(coords);
       }
-      await loadPartners();
     } catch (error) {
       console.error('Location error:', error);
-      await loadPartners();
     }
+    await loadPartners(coords);
   };
 
   useEffect(() => {
     initializeLocation();
   }, []);
+
+  // Tabs stay mounted: reload when the tab is shown again, so newly published partners appear
+  const firstFocus = useRef(true);
+  useFocusEffect(
+    useCallback(() => {
+      if (firstFocus.current) {
+        firstFocus.current = false;
+        return;
+      }
+      loadPartners(userLocation, { quiet: true });
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userLocation])
+  );
+
+  const [refreshing, setRefreshing] = useState(false);
+  const refresh = async () => {
+    setRefreshing(true);
+    await loadPartners(userLocation, { quiet: true });
+    setRefreshing(false);
+  };
 
   const handleCall = (phone?: string) => {
     if (!phone) {
@@ -179,7 +203,10 @@ export function FindVetScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <AppHeader colors={colors} />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}
+      >
       {/* Header */}
       <View style={[styles.header, { backgroundColor: colors.background }]}>
         <View style={styles.headerContent}>
@@ -280,10 +307,14 @@ export function FindVetScreen() {
                 </View>
                 <Text style={[styles.partnerName, { color: colors.text }]} numberOfLines={2}>{partner.name}</Text>
                 <View style={styles.partnerMeta}>
-                  <Text style={[styles.partnerRating, { color: colors.secondary }]}>⭐ {partner.rating}</Text>
+                  {/* Partners who joined through the form have no rating yet */}
+                  {partner.rating != null && (
+                    <Text style={[styles.partnerRating, { color: colors.secondary }]}>⭐ {partner.rating}</Text>
+                  )}
                   <Text style={[styles.partnerCategory, { color: colors.textTertiary }]}>{partner.category}</Text>
                 </View>
-                {partner.distance && (
+                {/* != null: a distance of 0 would render a bare "0" outside <Text> and crash */}
+                {partner.distance != null && (
                   <Text style={[styles.partnerDistance, { color: colors.textSecondary }]}>📍 {partner.distance} mi</Text>
                 )}
               </TouchableOpacity>
