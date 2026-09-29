@@ -21,6 +21,20 @@ const MAX_HISTORY = 6;
 // Size caps for the cached prompt: knowledge entries per species, and the content of each pet document
 const MAX_KNOWLEDGE_CHARS = 80_000;
 const MAX_DOC_CONTENT = 6_000;
+// Past MAX_KNOWLEDGE_CHARS (the site keeps adding guides and upvoted threads), the prompt holds a catalogue of
+// titles and summaries instead, and the model reads the full text of the few entries it needs with a tool
+const MAX_ENTRIES_READ = 4;
+const SUMMARY_CHARS = 200;
+
+const READ_TOOL = {
+  name: 'read_knowledge',
+  description: `Returns the full text of KNOWLEDGE entries, by their number. Call it once, before answering, with the ${MAX_ENTRIES_READ} or fewer entries that could help with the question.`,
+  input_schema: {
+    type: 'object',
+    properties: { entries: { type: 'array', items: { type: 'integer' }, maxItems: MAX_ENTRIES_READ } },
+    required: ['entries'],
+  },
+};
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -131,9 +145,13 @@ function petContext(pet: Record<string, any>, records: PetRecords, today: string
   ].join('\n\n');
 }
 
+const summaryOf = (d: any) => String(d.summary || d.content).replace(/\s+/g, ' ').slice(0, SUMMARY_CHARS);
+
 // Identical for every owner of the same species, so it is cached and billed at ~10% after the first message
-function knowledgePrompt(docs: any[], guides: any[]) {
-  const knowledge = docs.map((d, i) => `[${i + 1}] ${d.title} (${d.category})\n${d.content}`).join('\n\n');
+function knowledgePrompt(docs: any[], guides: any[], catalogue: boolean) {
+  const knowledge = catalogue
+    ? docs.map((d, i) => `[${i + 1}] ${d.title} (${d.category}): ${summaryOf(d)}`).join('\n')
+    : docs.map((d, i) => `[${i + 1}] ${d.title} (${d.category})\n${d.content}`).join('\n\n');
   const emergencies = guides
     .map(
       (g, i) =>
@@ -144,7 +162,12 @@ function knowledgePrompt(docs: any[], guides: any[]) {
   return `You are GRRR, the pet-care assistant of the GRRR Care app. You help owners look after their pet's health, nutrition, behaviour and prevention.
 
 Rules:
-- Base your answer on the KNOWLEDGE and EMERGENCY GUIDES below and cite them inline like [1] or [E1]. If they don't cover the question, say so briefly and give only general, safe guidance.
+- Base your answer on the KNOWLEDGE and EMERGENCY GUIDES below and cite them inline like [1] or [E1]. If they don't cover the question, say so briefly and give only general, safe guidance.${
+    catalogue
+      ? '\n- KNOWLEDGE only lists titles and summaries. When entries may help, first call read_knowledge with their numbers, then answer from their full text.'
+      : ''
+  }
+- Entries in the "community" category are tips upvoted by owners on the Grr website, not vet-reviewed: use them as practical ideas, never for health decisions.
 - You are not a veterinarian: never diagnose, never give medication doses. If the message suggests an emergency (poisoning, breathing trouble, heavy bleeding, collapse, seizures, suspected fracture, not eating or drinking for a long time...), your FIRST sentence must tell the owner to contact a vet or emergency clinic right away.
 - The pet's full profile, health records and documents follow at the end. Use them to answer directly: never ask for something they already contain (age, weight, breed, vaccines, treatments...). Ask a follow-up question only when the answer truly depends on something missing, and then ask just one.
 - Point out anything in the records that matters for the question: an overdue vaccine, an ongoing treatment, an allergy, an expired passport for a travel question.
@@ -226,7 +249,7 @@ Deno.serve(async req => {
   // Stable ordering matters: the knowledge block is cached, and any reordering would miss the cache
   const [allDocs, allGuides, vaccinations, medications, visits, documents] = await Promise.all([
     // Ordered by id as a tiebreak so the cached knowledge block stays byte-identical between messages
-    admin.from('knowledge_documents').select('title, category, content, species').eq('is_published', true).order('title').order('id'),
+    admin.from('knowledge_documents').select('title, category, summary, content, species').eq('is_published', true).order('title').order('id'),
     admin
       .from('emergency_guides')
       .select('title, symptoms, immediate_actions, when_to_call_vet, species')
@@ -262,10 +285,14 @@ Deno.serve(async req => {
     const all = rows ?? [];
     return all.some(isFor) ? all.filter(r => isFor(r) || general(r)) : all;
   };
+  const allForSpecies = forSpecies(allDocs.data);
+  const fullChars = allForSpecies.reduce((n, d) => n + d.title.length + d.content.length, 0);
+  // Small knowledge base: every entry in full. Larger: a catalogue, and the model reads what it needs
+  const catalogue = fullChars > MAX_KNOWLEDGE_CHARS;
   const docs: any[] = [];
   let knowledgeChars = 0;
-  for (const d of forSpecies(allDocs.data)) {
-    knowledgeChars += d.title.length + d.content.length;
+  for (const d of allForSpecies) {
+    knowledgeChars += d.title.length + (catalogue ? summaryOf(d).length : d.content.length);
     if (knowledgeChars > MAX_KNOWLEDGE_CHARS) {
       console.warn(`knowledge over ${MAX_KNOWLEDGE_CHARS} chars for ${species}: later entries left out`);
       break;
@@ -274,36 +301,59 @@ Deno.serve(async req => {
   }
   const guides = forSpecies(allGuides.data).slice(0, 5);
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 500,
-      // Two cache breakpoints: the shared knowledge (per species), then this pet's context (reused across the chat)
-      system: [
-        { type: 'text', text: knowledgePrompt(docs, guides), cache_control: { type: 'ephemeral' } },
-        { type: 'text', text: petContext(pet, records, today), cache_control: { type: 'ephemeral' } },
-        { type: 'text', text: replyPrompt(pet, mode, lang) },
-      ],
-      messages: buildMessages(history, message),
-    }),
-  });
+  const request = {
+    model: MODEL,
+    max_tokens: 500,
+    ...(catalogue ? { tools: [READ_TOOL] } : {}),
+    // Two cache breakpoints: the shared knowledge (per species), then this pet's context (reused across the chat)
+    system: [
+      { type: 'text', text: knowledgePrompt(docs, guides, catalogue), cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: petContext(pet, records, today), cache_control: { type: 'ephemeral' } },
+      { type: 'text', text: replyPrompt(pet, mode, lang) },
+    ],
+  };
+  const messages: any[] = buildMessages(history, message);
 
-  if (!res.ok) {
-    console.error('anthropic error', res.status, await res.text());
-    return json({ error: MESSAGES.failed[lang] }, 502);
+  async function callClaude(extra: Record<string, unknown> = {}) {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey!,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({ ...request, ...extra, messages }),
+    });
+    if (!res.ok) {
+      console.error('anthropic error', res.status, await res.text());
+      return null;
+    }
+    const data = await res.json();
+    const u = data.usage ?? {};
+    console.log(
+      `usage input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_write=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens}`
+    );
+    return data;
   }
 
-  const data = await res.json();
-  const u = data.usage ?? {};
-  console.log(
-    `usage input=${u.input_tokens} cache_read=${u.cache_read_input_tokens ?? 0} cache_write=${u.cache_creation_input_tokens ?? 0} output=${u.output_tokens}`
-  );
+  let data = await callClaude();
+  if (data?.stop_reason === 'tool_use') {
+    // One reading round: the entries asked for, then an answer (tools stay defined so the cached prefix still matches)
+    const results = (data.content ?? [])
+      .filter((b: any) => b.type === 'tool_use')
+      .map((b: any) => {
+        const wanted: number[] = Array.isArray(b.input?.entries) ? b.input.entries.slice(0, MAX_ENTRIES_READ) : [];
+        const read = wanted
+          .map(n => docs[n - 1] && `[${n}] ${docs[n - 1].title}\n${docs[n - 1].content}`)
+          .filter(Boolean)
+          .join('\n\n');
+        return { type: 'tool_result', tool_use_id: b.id, content: read || 'No entry with these numbers.' };
+      });
+    messages.push({ role: 'assistant', content: data.content }, { role: 'user', content: results });
+    data = await callClaude({ tool_choice: { type: 'none' } });
+  }
+  if (!data) return json({ error: MESSAGES.failed[lang] }, 502);
+
   const text = (data.content ?? [])
     .filter((b: any) => b.type === 'text')
     .map((b: any) => b.text)
