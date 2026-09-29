@@ -145,7 +145,7 @@ function petContext(pet: Record<string, any>, records: PetRecords, today: string
   ].join('\n\n');
 }
 
-const summaryOf = (d: any) => String(d.summary || d.content).replace(/\s+/g, ' ').slice(0, SUMMARY_CHARS);
+const summaryOf = (d: any) => String(d.content).replace(/\s+/g, ' ').slice(0, SUMMARY_CHARS);
 
 // Identical for every owner of the same species, so it is cached and billed at ~10% after the first message
 function knowledgePrompt(docs: any[], guides: any[], catalogue: boolean) {
@@ -249,7 +249,7 @@ Deno.serve(async req => {
   // Stable ordering matters: the knowledge block is cached, and any reordering would miss the cache
   const [allDocs, allGuides, vaccinations, medications, visits, documents] = await Promise.all([
     // Ordered by id as a tiebreak so the cached knowledge block stays byte-identical between messages
-    admin.from('knowledge_documents').select('title, category, summary, content, species').eq('is_published', true).order('title').order('id'),
+    admin.from('knowledge_documents').select('title, category, content, species').eq('is_published', true).order('title').order('id'),
     admin
       .from('emergency_guides')
       .select('title, symptoms, immediate_actions, when_to_call_vet, species')
