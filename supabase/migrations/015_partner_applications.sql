@@ -1,4 +1,4 @@
--- Establishments that ask to appear on the Find Vet map, through the public form (docs/partner-form.html, served by GitHub Pages).
+-- Establishments that ask to appear on the Find Vet map, through the public form (public/partenaires.html, served at care.greatrascals.com/partenaires).
 -- Flow, run by the partner-application Edge Function:
 --   1. the form is sent: a row is added here (unconfirmed) and a confirmation link is emailed
 --   2. the link is opened: the establishment is copied into partners with is_published = false

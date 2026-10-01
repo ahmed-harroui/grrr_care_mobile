@@ -1,7 +1,7 @@
-// Public form for establishments that want to appear on the Find Vet map (docs/partner-form.html, served by GitHub Pages).
+// Public form for establishments that want to appear on the Find Vet map (public/partenaires.html, served at care.greatrascals.com/partenaires).
 //   { action: 'apply', ...fields }  saves the application, finds the address on the map and emails a confirmation link
 //   { action: 'confirm', token }    confirms the email and adds the establishment to partners, unpublished,
-//                                   so it only shows on the map once the admin sets is_published = true
+//                                   so it only shows on the map once the admin publishes it from the Studio dashboard
 // Secrets: RESEND_API_KEY + EMAIL_FROM (a sender on a domain verified in Resend), PARTNER_FORM_URL (where the form is
 // hosted, the confirmation link points to it), ADMIN_EMAIL (optional, told about each confirmed application).
 // Deploy with --no-verify-jwt: the form is public.
@@ -157,7 +157,7 @@ async function confirm(admin: ReturnType<typeof createClient>, body: any) {
       }</p>
 ${application.description ? `<p>${escape(application.description)}</p>` : ''}
 ${located ? '' : "<p><b>Adresse introuvable sur la carte :</b> renseignez latitude et longitude à la main.</p>"}
-<p>Pour le publier : Supabase → Table Editor → partners → ligne <code>${partner.id}</code> → is_published = true.</p>`
+<p>Pour le publier : <a href="https://grrrr-main.vercel.app/studio">Studio</a> → Tableau de bord → Demandes de partenaires → Publier sur la carte.</p>`
     ).catch(e => console.error('admin email error', e));
   }
 
