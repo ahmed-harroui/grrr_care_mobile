@@ -193,6 +193,67 @@ EMERGENCY GUIDES
 ${emergencies || '(none for this species)'}`;
 }
 
+// Establishments of the app's map that the assistant may recommend: vet clinics first, nearest first when the app
+// shares the owner's position. Coordinates never reach the model, only distances.
+const MAX_PARTNERS = 6;
+const MAX_PARTNER_KM = 100;
+const PARTNER_KINDS: Record<string, string> = {
+  clinic: 'veterinary clinic',
+  pharmacy: 'pharmacy',
+  supplies: 'pet shop',
+  insurance: 'pet insurance',
+  food: 'pet food',
+  grooming: 'groomer',
+};
+interface Position {
+  latitude: number;
+  longitude: number;
+}
+
+function distanceKm(from: Position, to: { latitude: number | null; longitude: number | null }) {
+  if (to.latitude == null || to.longitude == null) return null;
+  const rad = (deg: number) => (deg * Math.PI) / 180;
+  const h =
+    Math.sin(rad(to.latitude - from.latitude) / 2) ** 2 +
+    Math.cos(rad(from.latitude)) * Math.cos(rad(to.latitude)) * Math.sin(rad(to.longitude - from.longitude) / 2) ** 2;
+  return 6371 * 2 * Math.asin(Math.sqrt(h));
+}
+
+function partnersToSuggest(rows: any[], position: Position | null) {
+  const all = rows
+    .map(p => ({ ...p, distance: position ? distanceKm(position, p) : null }))
+    // Too far to be "near": better to send the owner to the map than to a clinic in another region
+    .filter(p => !position || (p.distance != null && p.distance <= MAX_PARTNER_KM))
+    .sort((a, b) =>
+      position ? a.distance - b.distance : Number(b.is_featured) - Number(a.is_featured) || (b.rating ?? 0) - (a.rating ?? 0)
+    );
+  const clinics = all.filter(p => p.category === 'clinic').slice(0, 3);
+  return [...clinics, ...all.filter(p => p.category !== 'clinic').slice(0, MAX_PARTNERS - clinics.length)];
+}
+
+function partnersPrompt(partners: any[], located: boolean) {
+  const map = 'the map tab of the app, which lists the vets and partners around them';
+  if (!partners.length) {
+    return `PARTNERS
+(none ${located ? 'near the owner' : 'available'}) When the owner needs a vet or a service, point them to ${map}. Never name an establishment.`;
+  }
+  const lines = partners.map((p, i) => {
+    const km = p.distance == null ? '' : ` — ${p.distance < 10 ? p.distance.toFixed(1) : Math.round(p.distance)} km away`;
+    return `[P${i + 1}] ${p.name} — ${PARTNER_KINDS[p.category] ?? p.category}${km}${p.address ? ` — ${p.address}` : ''}`;
+  });
+  return `PARTNERS (establishments on the GRRR Care map${
+    located ? ', nearest to the owner first' : '; the owner has not shared their position, so distances are unknown'
+  })
+${lines.join('\n')}
+- When the owner should see a vet, asks where to go, or needs a service one of these offers, recommend the best fitting one by name${
+    located ? ' with its distance' : ''
+  } and cite it like [P1]. Two at most. The app shows a card with its phone and directions, so don't write the phone number or the address.
+- In an emergency, name the nearest veterinary clinic right after telling the owner to contact a vet.
+- Never mention an establishment that is not in this list, and don't recommend one when the question doesn't call for it.${
+    located ? '' : ' Add that the map tab of the app shows the nearest ones.'
+  }`;
+}
+
 function replyPrompt(pet: Record<string, any>, mode: Mode, lang: Lang) {
   const others = MODES.filter(m => m !== mode).map(m => `"${MODE_NAMES[lang][m]}"`).join(' or ');
   // Kept out of the cached blocks: the knowledge and the pet context are shared by the three modes
@@ -244,6 +305,12 @@ Deno.serve(async req => {
   if (!message || message.length > MAX_MESSAGE || typeof body?.petId !== 'string') {
     return json({ error: 'Invalid request' }, 400);
   }
+  // Sent by the app only when the owner already allowed location: used to sort partners by distance, never stored
+  const at = body?.location;
+  const position: Position | null =
+    typeof at?.latitude === 'number' && typeof at?.longitude === 'number' && Math.abs(at.latitude) <= 90 && Math.abs(at.longitude) <= 180
+      ? { latitude: at.latitude, longitude: at.longitude }
+      : null;
   const history: Turn[] = Array.isArray(body.history)
     ? body.history
         .filter((t: any) => (t?.role === 'user' || t?.role === 'assistant') && typeof t?.text === 'string')
@@ -264,7 +331,7 @@ Deno.serve(async req => {
   const species = String(pet.species || '').toLowerCase();
   const today = new Date().toISOString().slice(0, 10);
   // Stable ordering matters: the knowledge block is cached, and any reordering would miss the cache
-  const [allDocs, allGuides, vaccinations, medications, visits, documents] = await Promise.all([
+  const [allDocs, allGuides, vaccinations, medications, visits, documents, allPartners] = await Promise.all([
     // Ordered by id as a tiebreak so the cached knowledge block stays byte-identical between messages
     admin.from('knowledge_documents').select('title, category, content, species').eq('is_published', true).order('title').order('id'),
     admin
@@ -287,6 +354,10 @@ Deno.serve(async req => {
       .select('doc_type, title, issued_on, expires_on, ai_summary, ai_content')
       .eq('pet_id', pet.id)
       .order('created_at'),
+    admin
+      .from('partners')
+      .select('id, name, category, address, phone, website, latitude, longitude, rating, is_featured')
+      .eq('is_published', true),
   ]);
   const records: PetRecords = {
     vaccinations: vaccinations.data ?? [],
@@ -317,6 +388,7 @@ Deno.serve(async req => {
     docs.push(d);
   }
   const guides = forSpecies(allGuides.data).slice(0, 5);
+  const partners = partnersToSuggest(allPartners.data ?? [], position);
 
   const request = {
     model: MODEL,
@@ -326,7 +398,7 @@ Deno.serve(async req => {
     system: [
       { type: 'text', text: knowledgePrompt(docs, guides, catalogue), cache_control: { type: 'ephemeral' } },
       { type: 'text', text: petContext(pet, records, today), cache_control: { type: 'ephemeral' } },
-      { type: 'text', text: replyPrompt(pet, mode, lang) },
+      { type: 'text', text: `${replyPrompt(pet, mode, lang)}\n\n${partnersPrompt(partners, Boolean(position))}` },
     ],
   };
   const messages: any[] = buildMessages(history, message);
@@ -383,10 +455,26 @@ Deno.serve(async req => {
     ...guides.filter((_, i) => cited.has(`E${i + 1}`)).map(g => `🚨 ${g.title}`),
   ];
 
+  // Partners the answer recommends: the app shows them as cards, so their [P1] marks leave the text
+  const recommended = new Set([...text.matchAll(/\[P(\d+)\]/g)].map(m => Number(m[1])));
+  const suggestedPartners = partners
+    .filter((_, i) => recommended.has(i + 1))
+    .map(p => ({
+      id: p.id,
+      name: p.name,
+      category: p.category,
+      address: p.address,
+      phone: p.phone,
+      latitude: p.latitude,
+      longitude: p.longitude,
+      distance_km: p.distance,
+    }));
+  const reply = text.replace(/\s*\[P\d+\]/g, '');
+
   // Runs after the response is sent so the owner never waits on it
   if (questionQueueEnabled) {
     EdgeRuntime.waitUntil(queueQuestion(message, apiKey, MODEL).catch(e => console.error('question queue error', e)));
   }
 
-  return json({ response: text, sources, style: mode, remaining: Math.max(0, DAILY_LIMIT - used) });
+  return json({ response: reply, sources, partners: suggestedPartners, style: mode, remaining: Math.max(0, DAILY_LIMIT - used) });
 });

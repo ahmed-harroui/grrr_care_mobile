@@ -65,6 +65,9 @@ export const translations = {
       askVet: 'Ask about health, symptoms, vaccines...',
       askNutrition: 'Ask about food, portions, treats...',
       askBehavior: 'Ask about behaviour, body language, sounds...',
+      partner: 'GRRR Care partner',
+      call: 'Call',
+      directions: 'Directions',
       medicalSources: 'Medical Sources',
     },
     health: {
@@ -298,6 +301,9 @@ export const translations = {
       askVet: 'Santé, symptômes, vaccins...',
       askNutrition: 'Alimentation, quantités, friandises...',
       askBehavior: 'Comportement, langage du corps, sons...',
+      partner: 'Partenaire GRRR Care',
+      call: 'Appeler',
+      directions: 'Itinéraire',
       medicalSources: 'Sources Médicales',
     },
     health: {

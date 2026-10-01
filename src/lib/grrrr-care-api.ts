@@ -78,6 +78,18 @@ export const setDemoMode = (enabled: boolean) => {
 
 export const isDemoMode = () => demoMode;
 
+// A partner of the map that the assistant recommends in an answer
+export interface SuggestedPartner {
+  id: string;
+  name: string;
+  category: string;
+  address: string | null;
+  phone: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  distance_km: number | null;
+}
+
 export const grrrCareApi = {
   // Pets (filtered by owner)
   async getPets(userId?: string) {
@@ -497,14 +509,19 @@ export const grrrCareApi = {
     petId: string,
     message: string,
     style: string = 'vet',
-    options: { language?: string; history?: { role: 'user' | 'assistant'; text: string }[] } = {}
-  ): Promise<{ response: string; sources: string[]; style: string; remaining?: number }> {
+    options: {
+      language?: string;
+      history?: { role: 'user' | 'assistant'; text: string }[];
+      // Lets the assistant recommend the nearest partners; left out when the owner hasn't allowed location
+      location?: { latitude: number; longitude: number } | null;
+    } = {}
+  ): Promise<{ response: string; sources: string[]; partners?: SuggestedPartner[]; style: string; remaining?: number }> {
     if (demoMode) {
       return this.localChatAnswer(petId, message, style);
     }
 
     const { data, error } = await supabase.functions.invoke('grrr-chat', {
-      body: { petId, message, style, language: options.language, history: options.history ?? [] },
+      body: { petId, message, style, language: options.language, history: options.history ?? [], location: options.location ?? undefined },
     });
     if (error) {
       let detail: string | undefined;

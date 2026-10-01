@@ -12,12 +12,14 @@ import {
   Keyboard,
   Platform,
   Image,
+  Linking,
 } from 'react-native';
+import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import { usePetSelector } from '../../context/PetSelectorContext';
 import { useTheme } from '../../context/ThemeContext';
 import { useLanguage } from '../../context/LanguageContext';
-import { grrrCareApi } from '../../lib/grrrr-care-api';
+import { grrrCareApi, type SuggestedPartner } from '../../lib/grrrr-care-api';
 import { AppHeader } from '../../components/AppHeader';
 import { PetAvatar } from '../../components/PetAvatar';
 import { TAB_BAR_CLEARANCE } from '../../components/FloatingTabBar';
@@ -30,7 +32,27 @@ interface Message {
   role: 'user' | 'assistant';
   text: string;
   sources?: string[];
+  partners?: SuggestedPartner[];
   error?: boolean;
+}
+
+const PARTNER_EMOJI: Record<string, string> = { clinic: '🏥', pharmacy: '💊', supplies: '🛍️', insurance: '🛡️', food: '🥣', grooming: '✂️' };
+
+// The owner's position, only if location is already allowed (the Find Vet tab asks for it): the chat never prompts
+async function currentPosition() {
+  try {
+    const { status } = await Location.getForegroundPermissionsAsync();
+    if (status !== 'granted') return null;
+    const found = (await Location.getLastKnownPositionAsync()) ?? (await Location.getCurrentPositionAsync({}));
+    return found ? { latitude: found.coords.latitude, longitude: found.coords.longitude } : null;
+  } catch {
+    return null;
+  }
+}
+
+function openDirections(partner: SuggestedPartner) {
+  const destination = partner.latitude != null && partner.longitude != null ? `${partner.latitude},${partner.longitude}` : partner.address || partner.name;
+  Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(destination)}`).catch(() => {});
 }
 
 const MODES: { key: ChatStyle; emoji: string; label: string; intro: string; placeholder: string; suggestions: string[] }[] = [
@@ -81,8 +103,9 @@ export default function ChatScreen() {
     setLoading(true);
 
     try {
-      const response = await grrrCareApi.sendChatMessage(selectedPetId, question, style, { language, history });
-      setMessages(prev => [...prev, { role: 'assistant', text: response.response, sources: response.sources }]);
+      const location = await currentPosition();
+      const response = await grrrCareApi.sendChatMessage(selectedPetId, question, style, { language, history, location });
+      setMessages(prev => [...prev, { role: 'assistant', text: response.response, sources: response.sources, partners: response.partners }]);
     } catch (error: any) {
       console.error('Chat error:', error?.message || error);
       setMessages(prev => [...prev, { role: 'assistant', text: error?.message || 'Error', error: true }]);
@@ -227,6 +250,28 @@ export default function ChatScreen() {
                       </View>
                     )}
                   </View>
+                  {msg.partners?.map(partner => (
+                    <View key={partner.id} style={[styles.partnerCard, { backgroundColor: colors.card, borderColor: colors.primary + '55' }]}>
+                      <Text style={styles.partnerEmoji}>{PARTNER_EMOJI[partner.category] ?? '📍'}</Text>
+                      <View style={styles.flex}>
+                        <Text style={[styles.partnerName, { color: colors.text }]} numberOfLines={1}>{partner.name}</Text>
+                        <Text style={[styles.partnerMeta, { color: colors.textSecondary }]} numberOfLines={1}>
+                          {partner.distance_km != null ? `${partner.distance_km < 10 ? partner.distance_km.toFixed(1) : Math.round(partner.distance_km)} km · ` : ''}
+                          {partner.address || t('chat.partner')}
+                        </Text>
+                        <View style={styles.partnerActions}>
+                          {!!partner.phone && (
+                            <TouchableOpacity style={[styles.partnerBtn, { backgroundColor: colors.primary }]} onPress={() => Linking.openURL(`tel:${partner.phone}`).catch(() => {})}>
+                              <Text style={styles.partnerBtnText}>📞 {t('chat.call')}</Text>
+                            </TouchableOpacity>
+                          )}
+                          <TouchableOpacity style={[styles.partnerBtn, { backgroundColor: colors.backgroundElement }]} onPress={() => openDirections(partner)}>
+                            <Text style={[styles.partnerBtnText, { color: colors.text }]}>🧭 {t('chat.directions')}</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
                   {!msg.error && (
                     <View style={styles.feedbackRow}>
                       {(['up', 'down'] as const).map(v => (
@@ -331,6 +376,13 @@ const styles = StyleSheet.create({
   sources: { borderTopWidth: 1, marginTop: 10, paddingTop: 8, gap: 3 },
   sourcesLabel: { fontSize: 11, fontWeight: '700', marginBottom: 2 },
   sourceItem: { fontSize: 12 },
+  partnerCard: { flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginTop: 8, padding: 12, borderRadius: 16, borderWidth: 1 },
+  partnerEmoji: { fontSize: 22, marginTop: 2 },
+  partnerName: { fontSize: 15, fontWeight: '800' },
+  partnerMeta: { fontSize: 12, marginTop: 2 },
+  partnerActions: { flexDirection: 'row', gap: 8, marginTop: 10 },
+  partnerBtn: { paddingVertical: 7, paddingHorizontal: 12, borderRadius: 12 },
+  partnerBtnText: { color: '#FFFFFF', fontSize: 12, fontWeight: '800' },
   feedbackRow: { flexDirection: 'row', gap: 6, marginTop: 6 },
   feedbackBtn: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1 },
   feedbackEmoji: { fontSize: 13 },
