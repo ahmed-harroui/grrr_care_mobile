@@ -9,11 +9,11 @@ const DATASET = Deno.env.get('SANITY_DATASET') || 'production';
 const API = `https://${PROJECT_ID}.api.sanity.io/v2026-09-01/data`;
 const MAX_LISTED = 150;
 
-// Same filter as the site: drafts are never part of the queue
-const PUBLISHED = `!(_id in path("drafts.**"))`;
+// Same filter as the site: drafts are never part of the queue. A question leaves the queue when its guide is written,
+// so what is already covered is read from the guides (drafts included): their title and the question they came from
 const STATE = `{
-  "pending": *[_type == "question" && ${PUBLISHED} && used != true] | order(_createdAt asc)[0...${MAX_LISTED}] { _id, text },
-  "covered": *[_type == "question" && ${PUBLISHED} && used == true].text + *[_type == "guide" && ${PUBLISHED}].title
+  "pending": *[_type == "question" && !(_id in path("drafts.**"))] | order(_createdAt asc)[0...${MAX_LISTED}] { _id, text },
+  "covered": *[_type == "guide"].title + *[_type == "guide"].question
 }`;
 
 async function sanity(path: string, init?: RequestInit) {
@@ -99,6 +99,6 @@ export async function queueQuestion(message: string, apiKey: string, model: stri
 
   await sanity(`mutate/${DATASET}`, {
     method: 'POST',
-    body: JSON.stringify({ mutations: [{ create: { _type: 'question', text, used: false, source: 'app', asks: 1 } }] }),
+    body: JSON.stringify({ mutations: [{ create: { _type: 'question', text, source: 'app', asks: 1 } }] }),
   });
 }
