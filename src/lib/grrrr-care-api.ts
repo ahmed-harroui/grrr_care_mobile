@@ -496,7 +496,7 @@ export const grrrCareApi = {
   async sendChatMessage(
     petId: string,
     message: string,
-    style: string = 'care',
+    style: string = 'vet',
     options: { language?: string; history?: { role: 'user' | 'assistant'; text: string }[] } = {}
   ): Promise<{ response: string; sources: string[]; style: string; remaining?: number }> {
     if (demoMode) {
@@ -517,7 +517,7 @@ export const grrrCareApi = {
   },
 
   // Keyword answers from the knowledge base, used offline in demo mode (no account, so no Edge Function)
-  async localChatAnswer(petId: string, message: string, style: string = 'care') {
+  async localChatAnswer(petId: string, message: string, style: string = 'vet') {
     try {
       // Get pet species for knowledge search
       const pet = await this.getPetById(petId);

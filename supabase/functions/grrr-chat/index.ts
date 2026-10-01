@@ -7,7 +7,7 @@ import { queueQuestion, questionQueueEnabled } from './question-queue.ts';
 
 declare const EdgeRuntime: { waitUntil(promise: Promise<unknown>): void };
 
-type Mode = 'care' | 'pet_voice' | 'cute';
+type Mode = 'vet' | 'nutrition' | 'behavior';
 type Lang = 'fr' | 'en';
 interface Turn {
   role: 'user' | 'assistant';
@@ -41,12 +41,24 @@ const CORS = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const MODE_STYLE: Record<Mode, string> = {
-  care: 'Tone: warm, clear and practical, like a caring vet nurse.',
-  pet_voice:
-    'Tone: speak in the first person AS the pet ({name}, a {species}), playful and endearing. The information must stay accurate, and any safety advice must be stated plainly.',
-  cute: 'Tone: very affectionate and cheerful, with a few emojis. The information must stay accurate.',
+// The three specialities the owner picks from in the app. They change what the answer focuses on, not the rules above.
+const MODE_FOCUS: Record<Mode, string> = {
+  vet: `Speciality: HEALTH, like an experienced vet nurse. Symptoms, illnesses, parasites, vaccines, prevention, the treatments and visits in the records, recovery and ageing.
+Explain what the signs may point to (possibilities, never a diagnosis), what to watch over the next hours or days, what the owner can safely do now, and exactly when to see a vet.
+Tone: calm, clear and reassuring.`,
+  nutrition: `Speciality: NUTRITION, like a pet nutritionist. What and how much to feed this pet for its species, age, weight, neutering and allergies; meal rhythm, treats, water, changing food, weight gain or loss, foods that are toxic.
+Give quantities and frequencies only when the knowledge supports them, and tie them to this pet's weight and age. Mention any allergy on file before recommending a food.
+Tone: practical and concrete.`,
+  behavior: `Speciality: BEHAVIOUR, like a pet behaviourist. Psychology and emotions, body language (ears, tail, posture, eyes), movements and gait, sounds (barking, meowing, purring, growling, whining), habits, training, play, enrichment and socialisation.
+Explain what {name} is probably feeling or trying to say, why a {species} does this, and what the owner can do, step by step.
+A sudden change in behaviour or movement (limping, hiding, aggression, restlessness) can mean pain: say so and advise a vet check.
+Tone: warm and curious, on the pet's side.`,
 };
+const MODE_NAMES: Record<Lang, Record<Mode, string>> = {
+  fr: { vet: 'Vétérinaire', nutrition: 'Nutrition', behavior: 'Comportement' },
+  en: { vet: 'Vet', nutrition: 'Nutrition', behavior: 'Behaviour' },
+};
+const MODES = Object.keys(MODE_FOCUS) as Mode[];
 
 const MESSAGES = {
   limit: { fr: `Tu as atteint la limite de ${DAILY_LIMIT} messages pour aujourd'hui. Reviens demain 🐾`, en: `You've reached today's limit of ${DAILY_LIMIT} messages. Come back tomorrow 🐾` },
@@ -182,8 +194,11 @@ ${emergencies || '(none for this species)'}`;
 }
 
 function replyPrompt(pet: Record<string, any>, mode: Mode, lang: Lang) {
+  const others = MODES.filter(m => m !== mode).map(m => `"${MODE_NAMES[lang][m]}"`).join(' or ');
+  // Kept out of the cached blocks: the knowledge and the pet context are shared by the three modes
   return `Reply in ${lang === 'fr' ? 'French' : 'English'}, in 60 to 150 words.
-${MODE_STYLE[mode].replace('{name}', pet.pet_name).replace('{species}', pet.species)}`;
+${MODE_FOCUS[mode].replaceAll('{name}', pet.pet_name).replaceAll('{species}', pet.species)}
+If the question belongs to another speciality, still answer it in two or three sentences, then suggest switching to the ${others} mode for more. An emergency is always answered in full, in any mode.`;
 }
 
 // Claude expects alternating turns starting with the user
@@ -222,7 +237,8 @@ Deno.serve(async req => {
     return json({ error: 'Invalid JSON' }, 400);
   }
   const lang: Lang = body?.language === 'en' ? 'en' : 'fr';
-  const mode: Mode = ['care', 'pet_voice', 'cute'].includes(body?.style) ? body.style : 'care';
+  // Older app versions still send the former tone modes (care, pet_voice, cute): they get the vet speciality
+  const mode: Mode = MODES.includes(body?.style) ? body.style : 'vet';
   const message = typeof body?.message === 'string' ? body.message.trim() : '';
   if (!message || message.length > MAX_MESSAGE || typeof body?.petId !== 'string') {
     return json({ error: 'Invalid request' }, 400);

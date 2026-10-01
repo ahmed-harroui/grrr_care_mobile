@@ -24,7 +24,8 @@ import { TAB_BAR_CLEARANCE } from '../../components/FloatingTabBar';
 
 const GRRR_LOGO = require('../../../assets/logo/grrrr.png');
 
-type ChatStyle = 'care' | 'pet_voice' | 'cute';
+// The assistant's three specialities (must match the modes of the grrr-chat Edge Function)
+type ChatStyle = 'vet' | 'nutrition' | 'behavior';
 interface Message {
   role: 'user' | 'assistant';
   text: string;
@@ -32,10 +33,10 @@ interface Message {
   error?: boolean;
 }
 
-const MODES: { key: ChatStyle; emoji: string; label: string }[] = [
-  { key: 'care', emoji: '💚', label: 'chat.careTips' },
-  { key: 'pet_voice', emoji: '🐾', label: 'chat.petVoice' },
-  { key: 'cute', emoji: '💕', label: 'chat.cuteMode' },
+const MODES: { key: ChatStyle; emoji: string; label: string; intro: string; placeholder: string; suggestions: string[] }[] = [
+  { key: 'vet', emoji: '🩺', label: 'chat.modeVet', intro: 'chat.introVet', placeholder: 'chat.askVet', suggestions: ['chat.vaccines', 'chat.concerns', 'chat.scratching'] },
+  { key: 'nutrition', emoji: '🥕', label: 'chat.modeNutrition', intro: 'chat.introNutrition', placeholder: 'chat.askNutrition', suggestions: ['chat.food', 'chat.toxicFoods', 'chat.changeFood'] },
+  { key: 'behavior', emoji: '🧠', label: 'chat.modeBehavior', intro: 'chat.introBehavior', placeholder: 'chat.askBehavior', suggestions: ['chat.stressed', 'chat.sounds', 'chat.followsMe'] },
 ];
 
 export default function ChatScreen() {
@@ -46,7 +47,7 @@ export default function ChatScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [style, setStyle] = useState<ChatStyle>('care');
+  const [style, setStyle] = useState<ChatStyle>('vet');
   const [feedback, setFeedback] = useState<Record<number, 'up' | 'down'>>({});
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
@@ -113,11 +114,8 @@ export default function ChatScreen() {
     );
   }
 
-  const suggestions = [
-    t('chat.vaccines', { pet: petName }),
-    t('chat.food', { pet: petName }),
-    t('chat.concerns', { breed: pet?.breed || petName }),
-  ];
+  const current = MODES.find(m => m.key === style) ?? MODES[0];
+  const suggestions = current.suggestions.map(key => t(key, { pet: petName, breed: pet?.breed || petName }));
   const canSend = input.trim().length > 0 && !loading;
 
   return (
@@ -178,7 +176,7 @@ export default function ChatScreen() {
               </View>
               <Text style={[styles.emptyTitle, { color: colors.text }]}>{t('chat.startConversation')}</Text>
               <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-                {t('chat.askAnything', { pet: petName })}
+                {t(current.intro, { pet: petName })}
               </Text>
               <Text style={[styles.tryLabel, { color: colors.textTertiary }]}>{t('chat.tryAsking')}</Text>
               {suggestions.map(s => (
@@ -268,7 +266,7 @@ export default function ChatScreen() {
           <View style={[styles.inputPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <TextInput
               style={[styles.input, { color: colors.text }]}
-              placeholder={t('chat.askAbout')}
+              placeholder={t(current.placeholder)}
               placeholderTextColor={colors.textTertiary}
               value={input}
               onChangeText={setInput}
