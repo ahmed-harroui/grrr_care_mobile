@@ -197,8 +197,9 @@ function replyPrompt(pet: Record<string, any>, mode: Mode, lang: Lang) {
   const others = MODES.filter(m => m !== mode).map(m => `"${MODE_NAMES[lang][m]}"`).join(' or ');
   // Kept out of the cached blocks: the knowledge and the pet context are shared by the three modes
   return `Reply in ${lang === 'fr' ? 'French' : 'English'}, in 60 to 150 words.
+The owner picked the "${MODE_NAMES[lang][mode]}" mode of the chat (the other modes are ${others}; use these exact names).
 ${MODE_FOCUS[mode].replaceAll('{name}', pet.pet_name).replaceAll('{species}', pet.species)}
-If the question belongs to another speciality, still answer it in two or three sentences, then suggest switching to the ${others} mode for more. An emergency is always answered in full, in any mode.`;
+If the question belongs to another speciality, never refuse and never answer only with a redirection: first give the useful answer in two or three sentences, then add one sentence suggesting that mode for more detail. An emergency is always answered in full, in any mode.`;
 }
 
 // Claude expects alternating turns starting with the user
