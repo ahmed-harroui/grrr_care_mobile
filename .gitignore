@@ -48,3 +48,9 @@ setup-partners.js
 # local dev logs and Supabase CLI state
 *.log
 supabase/.temp/
+
+# Firebase service account keys (secret, given to EAS credentials) and downloaded builds
+grrrr-11adb-*.json
+*firebase-adminsdk*.json
+*.apk
+*.aab

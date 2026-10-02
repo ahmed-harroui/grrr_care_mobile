@@ -16,6 +16,8 @@ interface Turn {
 
 const MODEL = Deno.env.get('CHAT_MODEL') ?? 'claude-haiku-4-5-20251001';
 const DAILY_LIMIT = Number(Deno.env.get('CHAT_DAILY_LIMIT') ?? 30);
+// A month of AI assistant won with the daily gifts (profiles.care_ai_until, GRRRR migration 023).
+const PREMIUM_DAILY_LIMIT = Number(Deno.env.get('CHAT_PREMIUM_DAILY_LIMIT') ?? 300);
 const MAX_MESSAGE = 1000;
 const MAX_HISTORY = 6;
 // Size caps for the cached prompt: knowledge entries per species, and the content of each pet document
@@ -326,7 +328,11 @@ Deno.serve(async req => {
     console.error('usage error', usageError);
     return json({ error: MESSAGES.failed[lang] }, 500);
   }
-  if (used > DAILY_LIMIT) return json({ error: MESSAGES.limit[lang], code: 'daily_limit' }, 429);
+  if (used > DAILY_LIMIT) {
+    const { data: profile } = await admin.from('profiles').select('care_ai_until').eq('user_id', user.id).maybeSingle();
+    const premium = profile?.care_ai_until && new Date(profile.care_ai_until).getTime() > Date.now();
+    if (!premium || used > PREMIUM_DAILY_LIMIT) return json({ error: MESSAGES.limit[lang], code: 'daily_limit' }, 429);
+  }
 
   const species = String(pet.species || '').toLowerCase();
   const today = new Date().toISOString().slice(0, 10);

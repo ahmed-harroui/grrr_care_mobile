@@ -12,8 +12,15 @@ import LoginScreen from '@/screens/LoginScreen';
 import { PetOnboardingScreen, onboardingSkipKey } from '@/screens/PetOnboardingScreen';
 import { grrrCareApi } from '@/lib/grrrr-care-api';
 import { Colors } from '@/constants/theme';
+import { useCareBackground } from '@/hooks/use-care-background';
 
 SplashScreen.preventAutoHideAsync();
+
+// Reminders and home-screen widgets for the signed-in account.
+function CareBackground({ userId }: { userId: string }) {
+  useCareBackground(userId);
+  return null;
+}
 
 // Accounts that already have pets (e.g. from the GRRRR app) go straight in; new ones get the pet setup unless they skipped it
 function SignedInApp({ userId }: { userId: string }) {
@@ -46,6 +53,7 @@ function SignedInApp({ userId }: { userId: string }) {
 
   return (
     <PetSelectorProvider>
+      <CareBackground userId={userId} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="pet/[id]" />
