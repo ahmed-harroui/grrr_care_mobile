@@ -5,6 +5,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { usePetSelector } from '@/context/PetSelectorContext';
 import { claimDailyReward, DailyReward, DailyStreak, getDailyStreak, weekFor } from '@/lib/rewards';
+import { onOpenDailyGifts } from '@/lib/daily-gifts';
 
 // The daily gifts, as in the GRRRR app (same streak): a chain button in the header opens the
 // week's chain, in GRRRR Adopt's look (white glass, warm orange). Day 7: a month of the AI
@@ -56,6 +57,8 @@ export function DailyRewards() {
     });
   }, [user?.id]);
   useFocusEffect(load);
+  // Opened from elsewhere (the Care+ card): only the header of the screen on display answers.
+  useFocusEffect(useCallback(() => onOpenDailyGifts(() => { setWon(null); setOpen(true); }), []));
 
   // The button breathes while today's gift waits.
   const [pulse] = useState(() => new Animated.Value(1));

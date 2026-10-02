@@ -13,6 +13,7 @@ import { PetOnboardingScreen, onboardingSkipKey } from '@/screens/PetOnboardingS
 import { grrrCareApi } from '@/lib/grrrr-care-api';
 import { Colors } from '@/constants/theme';
 import { useCareBackground } from '@/hooks/use-care-background';
+import { OpeningAnimation } from '@/components/OpeningAnimation';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -87,15 +88,19 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
-  // The native splash stays up until told otherwise: hide it once the first screen (a spinner at
-  // worst) is on screen, or a built app never gets past it.
+  // The native splash stays up until told otherwise: the opening animation hides it as soon as it
+  // is drawn (same picture, so no jump); this is the safety net, or a built app never gets past it.
   useEffect(() => {
-    SplashScreen.hideAsync().catch(() => {});
+    const timer = setTimeout(() => SplashScreen.hideAsync().catch(() => {}), 1500);
+    return () => clearTimeout(timer);
   }, []);
 
   return (
-    <AuthProvider>
-      <RootLayoutContent />
-    </AuthProvider>
+    <View style={{ flex: 1 }}>
+      <AuthProvider>
+        <RootLayoutContent />
+      </AuthProvider>
+      <OpeningAnimation />
+    </View>
   );
 }

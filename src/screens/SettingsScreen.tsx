@@ -3,6 +3,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { AppHeader } from '../components/AppHeader';
 import { ProfileSection } from '../components/ProfileSection';
+import { CareSubscription } from '../components/CareSubscription';
 
 export function SettingsScreen() {
   const { colors, isDark, toggleTheme, themeMode, setThemeMode } = useTheme();
@@ -13,6 +14,11 @@ export function SettingsScreen() {
       <AppHeader colors={colors} />
       <ScrollView showsVerticalScrollIndicator={false}>
         <ProfileSection />
+
+        {/* Care+ subscription (payment not open yet) */}
+        <View style={styles.section}>
+          <CareSubscription variant="settings" />
+        </View>
 
         {/* Appearance Section */}
         <View style={styles.section}>

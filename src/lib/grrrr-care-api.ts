@@ -525,10 +525,14 @@ export const grrrCareApi = {
     });
     if (error) {
       let detail: string | undefined;
+      let code: string | undefined;
       try {
-        detail = (await (error as any).context?.json())?.error;
+        const body = await (error as any).context?.json();
+        detail = body?.error;
+        code = body?.code;
       } catch {}
-      throw new Error(detail || error.message);
+      // code 'daily_limit': the chat then offers Care+ (CareSubscription)
+      throw Object.assign(new Error(detail || error.message), { code });
     }
     return data;
   },

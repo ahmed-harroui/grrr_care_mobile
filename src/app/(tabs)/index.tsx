@@ -12,6 +12,8 @@ import { AppHeader } from '../../components/AppHeader';
 import { AnimatedCard } from '../../components/AnimatedCard';
 import { HealthBadge, HealthScoreSection } from '../../components/HealthScore';
 import { getPetHealthScore, type HealthScoreResult } from '../../lib/health-score';
+import { CareSubscription } from '../../components/CareSubscription';
+import { CommunityFeed } from '../../components/CommunityFeed';
 
 const STORE_URL = 'https://grrrr-store-89il.vercel.app/';
 
@@ -189,6 +191,14 @@ export default function HomeScreen() {
         </View>
       </AnimatedCard>
 
+      {/* Care+ (payment not open yet: the weekly mission's free month) */}
+      <AnimatedCard style={styles.plusSection} delay={250}>
+        <CareSubscription />
+      </AnimatedCard>
+
+      {/* Guides from the Studio and the community's threads */}
+      <CommunityFeed colors={colors} />
+
       {/* Recent Activity */}
       {summary && (
         <AnimatedCard style={styles.activitySection} delay={300}>
@@ -254,6 +264,8 @@ const styles = StyleSheet.create({
   tileIcon: { width: 30, height: 30, resizeMode: 'contain' },
   tileLabel: { fontSize: 13, fontWeight: '700' },
   tileExternal: { position: 'absolute', top: 8, right: 10, fontSize: 12, fontWeight: '700' },
+
+  plusSection: { paddingHorizontal: 20, marginBottom: 28 },
 
   activitySection: { paddingHorizontal: 20, marginBottom: 20 },
   activityHeader: { marginBottom: 12 },

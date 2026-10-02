@@ -1,304 +1,324 @@
-import { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
+import Animated, {
+  FadeIn,
+  FadeInDown,
+  FadeInRight,
+  FadeOutLeft,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+  Easing,
+} from 'react-native-reanimated';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+
+// Sign-in and sign-up as a short conversation with the assistant: one question per screen, the
+// logo talks, the button wakes up once the answer is valid, and mistakes shake the field instead
+// of opening an alert. Same account as the GRRRR app.
+
+const LOGO = require('../../assets/logo/grrrr.png');
+
+type Flow = 'welcome' | 'login' | 'register';
+type Field = 'name' | 'email' | 'password';
+
+const STEPS: Record<Exclude<Flow, 'welcome'>, Field[]> = {
+  login: ['email', 'password'],
+  register: ['name', 'email', 'password'],
+};
+
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+function passwordStrength(password: string) {
+  let score = 0;
+  if (password.length >= 6) score++;
+  if (password.length >= 10) score++;
+  if (/[A-Z]/.test(password) && /[a-z]/.test(password)) score++;
+  if (/\d/.test(password) || /[^A-Za-z0-9]/.test(password)) score++;
+  return score; // 0..4
+}
 
 export default function LoginScreen() {
   const { colors } = useTheme();
   const { login, register, demoMode } = useAuth();
+  const { language } = useLanguage();
+  const tx = (en: string, fr: string) => (language === 'fr' ? fr : en);
 
-  const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const [flow, setFlow] = useState<Flow>('welcome');
+  const [step, setStep] = useState(0);
+  const [values, setValues] = useState<Record<Field, string>>({ name: '', email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  const handleAuth = async () => {
-    if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+  // The logo floats gently; the field shakes on a mistake.
+  const float = useSharedValue(0);
+  const shake = useSharedValue(0);
+  useEffect(() => {
+    float.value = withRepeat(withTiming(1, { duration: 1800, easing: Easing.inOut(Easing.sin) }), -1, true);
+  }, [float]);
+  const floatStyle = useAnimatedStyle(() => ({ transform: [{ translateY: -6 * float.value }, { rotate: `${(float.value - 0.5) * 6}deg` }] }));
+  const shakeStyle = useAnimatedStyle(() => ({ transform: [{ translateX: shake.value }] }));
+  const doShake = () => {
+    shake.set(withSequence(withTiming(-10, { duration: 50 }), withTiming(10, { duration: 50 }), withTiming(-6, { duration: 50 }), withTiming(6, { duration: 50 }), withTiming(0, { duration: 50 })));
+  };
+
+  const steps = flow === 'welcome' ? [] : STEPS[flow];
+  const field = steps[step];
+  const value = field ? values[field] : '';
+  const firstName = values.name.trim().split(' ')[0];
+
+  const valid =
+    field === 'name' ? value.trim().length >= 2 : field === 'email' ? EMAIL.test(value.trim()) : field === 'password' ? value.length >= 6 : false;
+
+  const start = (next: Flow) => {
+    setFlow(next);
+    setStep(0);
+    setError(null);
+  };
+
+  const back = () => {
+    setError(null);
+    if (step > 0) setStep(step - 1);
+    else setFlow('welcome');
+  };
+
+  const next = async () => {
+    if (!field || loading) return;
+    if (!valid) {
+      setError(
+        field === 'name'
+          ? tx('Just your first name is enough.', 'Ton prénom suffit.')
+          : field === 'email'
+            ? tx("That email doesn't look right.", "Cet email n'a pas l'air correct.")
+            : tx('At least 6 characters.', 'Au moins 6 caractères.')
+      );
+      doShake();
       return;
     }
-
-    if (mode === 'register' && !name) {
-      Alert.alert('Error', 'Please enter your name');
+    setError(null);
+    if (step < steps.length - 1) {
+      setStep(step + 1);
       return;
     }
-
     try {
       setLoading(true);
-      if (mode === 'login') {
-        await login(email, password);
-      } else {
-        await register(email, password, name);
-      }
-    } catch (error: any) {
-      Alert.alert('Error', error.message || 'Authentication failed');
+      if (flow === 'login') await login(values.email.trim(), values.password);
+      else await register(values.email.trim(), values.password, values.name.trim());
+    } catch (e: any) {
+      const message = String(e?.message ?? '');
+      setError(
+        /invalid login|invalid credentials/i.test(message)
+          ? tx('Wrong email or password.', 'Email ou mot de passe incorrect.')
+          : /already registered|already exists/i.test(message)
+            ? tx('This email already has an account: sign in instead.', 'Cet email a déjà un compte : connecte-toi plutôt.')
+            : message || tx('Something went wrong, try again.', "Un souci est survenu, réessaie.")
+      );
+      doShake();
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDemoMode = () => {
-    demoMode();
-  };
+  // What the assistant says at each step.
+  const bubble =
+    flow === 'welcome'
+      ? tx("Hi! I'm GRRR, your companion's health assistant.", "Salut ! Moi c'est GRRR, l'assistant santé de ton compagnon.")
+      : field === 'name'
+        ? tx("Let's get acquainted. What's your name?", 'Faisons connaissance. Comment tu t’appelles ?')
+        : field === 'email'
+          ? flow === 'register'
+            ? tx(`Nice to meet you, ${firstName}! Your email?`, `Enchanté ${firstName} ! Ton email ?`)
+            : tx('Welcome back! Your email?', 'Content de te revoir ! Ton email ?')
+          : flow === 'register'
+            ? tx("Last one: pick a password. I'm not looking 🙈", 'Dernière étape : choisis un mot de passe. Je ne regarde pas 🙈')
+            : tx("Your password, I'm not looking 🙈", 'Ton mot de passe, je ne regarde pas 🙈');
+
+  const strength = passwordStrength(values.password);
+  const strengthColors = ['#EF4444', '#F59E0B', '#EAB308', '#22C55E', '#10B981'];
+  const strengthLabels = [tx('Too short', 'Trop court'), tx('Weak', 'Faible'), tx('Fair', 'Moyen'), tx('Good', 'Bon'), tx('Strong', 'Solide')];
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: colors.background }]} showsVerticalScrollIndicator={false}>
-      <View style={styles.content}>
-        {/* Gradient background accent */}
-        <View style={[styles.bgAccent, { backgroundColor: colors.softPink }]} />
+    <KeyboardAvoidingView style={[styles.container, { backgroundColor: colors.background }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+      <View style={[styles.blob, styles.blobA, { backgroundColor: colors.primary }]} />
+      <View style={[styles.blob, styles.blobB, { backgroundColor: '#FFB35C' }]} />
 
-        {/* Premium Logo & Branding */}
-        <View style={styles.logoSection}>
-          <View style={[styles.logoBadge, { backgroundColor: colors.primary }]}>
-            <Text style={styles.logoBadgeEmoji}>🐾</Text>
-          </View>
-          <Text style={[styles.title, { color: colors.text }]}>GRRR Care</Text>
-          <Text style={[styles.tagline, { color: colors.textSecondary }]}>
-            Your pet's health, our priority
-          </Text>
-        </View>
-
-        {/* Premium Auth Tabs */}
-        <View style={[styles.tabBar, { backgroundColor: colors.backgroundElement, borderColor: colors.border }]}>
-          <TouchableOpacity
-            onPress={() => setMode('login')}
-            style={[
-              styles.tab,
-              mode === 'login' && [styles.activeTab, { backgroundColor: colors.card }],
-            ]}
-          >
-            <Text style={[styles.tabText, { color: mode === 'login' ? colors.text : colors.textSecondary, fontWeight: mode === 'login' ? '700' : '500' }]}>
-              Sign In
-            </Text>
-            {mode === 'login' && (
-              <View style={[styles.tabIndicator, { backgroundColor: colors.primary }]} />
-            )}
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setMode('register')}
-            style={[
-              styles.tab,
-              mode === 'register' && [styles.activeTab, { backgroundColor: colors.card }],
-            ]}
-          >
-            <Text style={[styles.tabText, { color: mode === 'register' ? colors.text : colors.textSecondary, fontWeight: mode === 'register' ? '700' : '500' }]}>
-              Join
-            </Text>
-            {mode === 'register' && (
-              <View style={[styles.tabIndicator, { backgroundColor: colors.primary }]} />
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Emotional Copy */}
-        <View style={styles.copySection}>
-          <Text style={[styles.copy, { color: colors.textSecondary }]}>
-            {mode === 'login'
-              ? '👋 Welcome back! Your pets missed you.'
-              : '✨ Let\'s care for your furry friends together.'}
-          </Text>
-        </View>
-
-        {/* Form */}
-        <View style={styles.form}>
-          {mode === 'register' && (
-            <View>
-              <Text style={[styles.label, { color: colors.text }]}>Full Name</Text>
-              <View style={[styles.inputWrapper, { borderColor: colors.border, backgroundColor: colors.card }]}>
-                <Text style={styles.inputIcon}>👤</Text>
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="Your name"
-                  placeholderTextColor={colors.textTertiary}
-                  value={name}
-                  onChangeText={setName}
-                  editable={!loading}
-                />
-              </View>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        {/* Top bar: back + progress */}
+        <View style={styles.topBar}>
+          {flow !== 'welcome' ? (
+            <Pressable onPress={back} hitSlop={10} style={[styles.backButton, { backgroundColor: colors.card, borderColor: colors.border }]}>
+              <Text style={[styles.backText, { color: colors.text }]}>←</Text>
+            </Pressable>
+          ) : (
+            <View style={styles.backButton} />
+          )}
+          {flow !== 'welcome' && (
+            <View style={styles.progress}>
+              {steps.map((_, i) => (
+                <View key={i} style={[styles.progressStep, { backgroundColor: i <= step ? colors.primary : colors.border }]} />
+              ))}
             </View>
           )}
+        </View>
 
-          <View>
-            <Text style={[styles.label, { color: colors.text }]}>Email Address</Text>
-            <View style={[styles.inputWrapper, { borderColor: colors.border, backgroundColor: colors.card }]}>
-              <Text style={styles.inputIcon}>📧</Text>
+        {/* The assistant and what it says */}
+        <View style={styles.mascotRow}>
+          <Animated.View style={[styles.logoWrap, flow === 'welcome' && styles.logoWrapBig, floatStyle]}>
+            <Image source={LOGO} style={styles.logo} contentFit="contain" />
+          </Animated.View>
+          <Animated.View key={`${flow}-${step}`} entering={FadeInDown.duration(350)} style={[styles.bubble, { backgroundColor: colors.card, borderColor: colors.border }]}>
+            <Text style={[styles.bubbleText, { color: colors.text }]}>{bubble}</Text>
+          </Animated.View>
+        </View>
+
+        {flow === 'welcome' ? (
+          <Animated.View entering={FadeIn.delay(150).duration(400)} style={styles.welcome}>
+            <Text style={[styles.title, { color: colors.text }]}>GRRR Care</Text>
+            <Text style={[styles.tagline, { color: colors.textSecondary }]}>
+              {tx('Health records, reminders and an assistant that knows your pet.', 'Carnet de santé, rappels et un assistant qui connaît ton compagnon.')}
+            </Text>
+
+            <Pressable onPress={() => start('register')} style={({ pressed }) => [styles.primary, { backgroundColor: colors.primary, shadowColor: colors.primary }, pressed && styles.pressed]}>
+              <Text style={styles.primaryText}>{tx('Create my account', 'Créer mon compte')}</Text>
+            </Pressable>
+            <Pressable onPress={() => start('login')} style={({ pressed }) => [styles.secondary, { borderColor: colors.primary, backgroundColor: colors.card }, pressed && styles.pressed]}>
+              <Text style={[styles.secondaryText, { color: colors.primary }]}>{tx('I already have an account', "J'ai déjà un compte")}</Text>
+            </Pressable>
+            <Text style={[styles.hint, { color: colors.textTertiary }]}>{tx('Same account as the GRRRR app 🐾', "Le même compte que l'app GRRRR 🐾")}</Text>
+
+            <Pressable onPress={demoMode} style={({ pressed }) => [styles.demo, pressed && styles.pressed]}>
+              <Text style={[styles.demoText, { color: colors.textSecondary }]}>{tx('Just looking? Try the demo →', 'Juste curieux ? Essaie la démo →')}</Text>
+            </Pressable>
+          </Animated.View>
+        ) : (
+          <Animated.View key={`${flow}-${field}`} entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)} style={styles.stepBox}>
+            <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>
+              {field === 'name' ? tx('YOUR FIRST NAME', 'TON PRÉNOM') : field === 'email' ? 'EMAIL' : tx('PASSWORD', 'MOT DE PASSE')}
+            </Text>
+            <Animated.View style={[styles.inputWrap, { backgroundColor: colors.card, borderColor: error ? colors.error : valid ? colors.primary : colors.border }, shakeStyle]}>
               <TextInput
+                autoFocus
                 style={[styles.input, { color: colors.text }]}
-                placeholder="your@email.com"
+                value={value}
+                onChangeText={(text) => {
+                  setValues((v) => ({ ...v, [field]: text }));
+                  if (error) setError(null);
+                }}
+                placeholder={field === 'name' ? tx('Alex', 'Camille') : field === 'email' ? tx('you@email.com', 'toi@email.com') : '••••••••'}
                 placeholderTextColor={colors.textTertiary}
-                value={email}
-                onChangeText={setEmail}
+                keyboardType={field === 'email' ? 'email-address' : 'default'}
+                autoCapitalize={field === 'name' ? 'words' : 'none'}
+                autoComplete={field === 'name' ? 'given-name' : field === 'email' ? 'email' : flow === 'register' ? 'new-password' : 'current-password'}
+                secureTextEntry={field === 'password' && !showPassword}
+                returnKeyType={step === steps.length - 1 ? 'done' : 'next'}
+                onSubmitEditing={next}
+                submitBehavior="submit"
                 editable={!loading}
-                keyboardType="email-address"
-                autoCapitalize="none"
               />
-            </View>
-          </View>
+              {field === 'password' ? (
+                <Pressable onPress={() => setShowPassword((s) => !s)} hitSlop={8}>
+                  <Text style={styles.eye}>{showPassword ? '🙈' : '👁️'}</Text>
+                </Pressable>
+              ) : valid ? (
+                <Animated.Text entering={FadeIn} style={[styles.check, { color: colors.primary }]}>✓</Animated.Text>
+              ) : null}
+            </Animated.View>
 
-          <View>
-            <Text style={[styles.label, { color: colors.text }]}>Password</Text>
-            <View style={[styles.inputWrapper, { borderColor: colors.border, backgroundColor: colors.card }]}>
-              <Text style={styles.inputIcon}>🔐</Text>
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="••••••••"
-                placeholderTextColor={colors.textTertiary}
-                value={password}
-                onChangeText={setPassword}
-                editable={!loading}
-                secureTextEntry
-              />
-            </View>
-          </View>
-
-          {/* Security Info */}
-          <View style={[styles.securityBox, { backgroundColor: colors.backgroundElement, borderLeftColor: colors.primary, borderLeftWidth: 4 }]}>
-            <Text style={[styles.securityIcon]}>🔒</Text>
-            <View style={styles.securityContent}>
-              <Text style={[styles.securityTitle, { color: colors.text }]}>Secure & Private</Text>
-              <Text style={[styles.securityText, { color: colors.textSecondary }]}>
-                {mode === 'login'
-                  ? 'Sign in with your GRRRR account'
-                  : 'Your data is encrypted end-to-end'}
-              </Text>
-            </View>
-          </View>
-
-          {/* Primary Auth Button */}
-          <TouchableOpacity
-            style={[styles.authButton, { backgroundColor: colors.primary, opacity: loading ? 0.6 : 1 }]}
-            onPress={handleAuth}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="white" />
-            ) : (
-              <View style={styles.authButtonContent}>
-                <Text style={styles.authButtonEmoji}>{mode === 'login' ? '→' : '✨'}</Text>
-                <Text style={styles.authButtonText}>
-                  {mode === 'login' ? 'Continue' : 'Create Account'}
-                </Text>
+            {field === 'password' && flow === 'register' && values.password.length > 0 && (
+              <View style={styles.strength}>
+                <View style={styles.strengthBar}>
+                  {[0, 1, 2, 3].map((i) => (
+                    <View key={i} style={[styles.strengthStep, { backgroundColor: i < strength ? strengthColors[strength] : colors.border }]} />
+                  ))}
+                </View>
+                <Text style={[styles.strengthText, { color: strengthColors[strength] }]}>{strengthLabels[strength]}</Text>
               </View>
             )}
-          </TouchableOpacity>
 
-          {/* Helper Text */}
-          <Text style={[styles.helperText, { color: colors.textSecondary }]}>
-            {mode === 'login'
-              ? 'Don\'t have an account? Tap "Join" above'
-              : 'Already have an account? Tap "Sign In" above'}
-          </Text>
-        </View>
+            {error && (
+              <Animated.Text entering={FadeIn} style={[styles.error, { color: colors.error }]}>
+                {error}
+              </Animated.Text>
+            )}
 
-        {/* Divider */}
-        <View style={[styles.dividerSection, { borderTopColor: colors.border }]}>
-          <Text style={[styles.dividerText, { color: colors.textTertiary }]}>or</Text>
-        </View>
+            <Pressable
+              onPress={next}
+              disabled={loading}
+              style={({ pressed }) => [
+                styles.primary,
+                { backgroundColor: valid ? colors.primary : colors.backgroundElement, shadowColor: colors.primary, shadowOpacity: valid ? 0.3 : 0 },
+                pressed && styles.pressed,
+              ]}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={[styles.primaryText, !valid && { color: colors.textTertiary }]}>
+                  {step < steps.length - 1 ? tx('Continue', 'Continuer') : flow === 'login' ? tx('Sign in', 'Me connecter') : tx('Create my account', 'Créer mon compte')}
+                </Text>
+              )}
+            </Pressable>
 
-        {/* Demo Mode - CTA Card */}
-        <TouchableOpacity
-          style={[styles.demoCard, { backgroundColor: colors.secondary, borderColor: colors.secondaryDeep }]}
-          onPress={handleDemoMode}
-          activeOpacity={0.9}
-        >
-          <View style={styles.demoCardContent}>
-            <Text style={styles.demoCardEmoji}>🚀</Text>
-            <View style={styles.demoCardText}>
-              <Text style={styles.demoCardTitle}>Explore First</Text>
-              <Text style={styles.demoCardDesc}>Try demo with sample pets</Text>
-            </View>
-          </View>
-          <Text style={styles.demoCardArrow}>›</Text>
-        </TouchableOpacity>
-
-        {/* Trust Indicators */}
-        <View style={styles.trustSection}>
-          <Text style={[styles.trustLabel, { color: colors.textSecondary }]}>TRUSTED BY PET OWNERS</Text>
-          <View style={styles.trustBadges}>
-            <View style={[styles.trustBadge, { backgroundColor: colors.backgroundElement }]}>
-              <Text style={styles.trustBadgeEmoji}>❤️</Text>
-              <Text style={[styles.trustBadgeText, { color: colors.textSecondary }]}>Health First</Text>
-            </View>
-            <View style={[styles.trustBadge, { backgroundColor: colors.backgroundElement }]}>
-              <Text style={styles.trustBadgeEmoji}>🔐</Text>
-              <Text style={[styles.trustBadgeText, { color: colors.textSecondary }]}>Secure</Text>
-            </View>
-            <View style={[styles.trustBadge, { backgroundColor: colors.backgroundElement }]}>
-              <Text style={styles.trustBadgeEmoji}>🐾</Text>
-              <Text style={[styles.trustBadgeText, { color: colors.textSecondary }]}>Pet-Focused</Text>
-            </View>
-          </View>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={[styles.footerText, { color: colors.textTertiary }]}>
-            Part of the GRRRR ecosystem
-          </Text>
-        </View>
-      </View>
-    </ScrollView>
+            <Pressable onPress={() => start(flow === 'login' ? 'register' : 'login')} style={styles.switch}>
+              <Text style={[styles.switchText, { color: colors.primary }]}>
+                {flow === 'login' ? tx('No account yet? Create one', 'Pas encore de compte ? Crée-le') : tx('Already have an account? Sign in', 'Déjà un compte ? Connecte-toi')}
+              </Text>
+            </Pressable>
+          </Animated.View>
+        )}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  content: { paddingHorizontal: 20, paddingVertical: 40 },
-  bgAccent: { position: 'absolute', top: 0, left: -100, width: 300, height: 300, borderRadius: 200, opacity: 0.3 },
+  container: { flex: 1, overflow: 'hidden' },
+  content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 56, paddingBottom: 40 },
+  blob: { position: 'absolute', borderRadius: 999 },
+  blobA: { width: 320, height: 320, top: -140, right: -120, opacity: 0.12 },
+  blobB: { width: 260, height: 260, bottom: -110, left: -100, opacity: 0.16 },
+  pressed: { opacity: 0.85, transform: [{ scale: 0.98 }] },
 
-  logoSection: { alignItems: 'center', marginBottom: 40, marginTop: 20 },
-  logoBadge: { width: 80, height: 80, borderRadius: 40, justifyContent: 'center', alignItems: 'center', marginBottom: 16, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.1, shadowRadius: 12, elevation: 4 },
-  logoBadgeEmoji: { fontSize: 40 },
-  title: { fontSize: 32, fontWeight: '800', marginBottom: 8 },
-  tagline: { fontSize: 14, fontWeight: '500', maxWidth: 220, textAlign: 'center' },
+  topBar: { flexDirection: 'row', alignItems: 'center', gap: 16, minHeight: 40, marginBottom: 24 },
+  backButton: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: 'transparent' },
+  backText: { fontSize: 18, fontWeight: '700' },
+  progress: { flex: 1, flexDirection: 'row', gap: 6 },
+  progressStep: { flex: 1, height: 5, borderRadius: 3 },
 
-  tabBar: { flexDirection: 'row', borderRadius: 14, padding: 4, marginBottom: 32, gap: 4, borderWidth: 1 },
-  tab: { flex: 1, paddingVertical: 12, alignItems: 'center', justifyContent: 'center', borderRadius: 12, position: 'relative' },
-  activeTab: { shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.04, shadowRadius: 8, elevation: 2 },
-  tabText: { fontSize: 14 },
-  tabIndicator: { position: 'absolute', bottom: 0, height: 3, width: '80%', borderRadius: 2 },
+  mascotRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 12, marginBottom: 28 },
+  logoWrap: { width: 64, height: 64 },
+  logoWrapBig: { width: 92, height: 92 },
+  logo: { width: '100%', height: '100%' },
+  bubble: { flex: 1, padding: 14, borderRadius: 20, borderBottomLeftRadius: 6, borderWidth: 1, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2 },
+  bubbleText: { fontSize: 15, lineHeight: 21, fontWeight: '600' },
 
-  copySection: { alignItems: 'center', marginBottom: 28 },
-  copy: { fontSize: 15, fontWeight: '500', maxWidth: 300, textAlign: 'center', lineHeight: 20 },
+  welcome: { flex: 1 },
+  title: { fontSize: 38, fontWeight: '900', letterSpacing: -1 },
+  tagline: { fontSize: 15, lineHeight: 22, marginTop: 6, marginBottom: 30 },
+  primary: { height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 12, shadowOpacity: 0.3, shadowRadius: 14, shadowOffset: { width: 0, height: 6 }, elevation: 4 },
+  primaryText: { color: '#FFFFFF', fontSize: 16, fontWeight: '800' },
+  secondary: { height: 56, borderRadius: 18, alignItems: 'center', justifyContent: 'center', marginTop: 12, borderWidth: 1.5 },
+  secondaryText: { fontSize: 16, fontWeight: '800' },
+  hint: { textAlign: 'center', fontSize: 12, fontWeight: '600', marginTop: 14 },
+  demo: { alignItems: 'center', marginTop: 28, paddingVertical: 8 },
+  demoText: { fontSize: 14, fontWeight: '700' },
 
-  form: { gap: 16, marginBottom: 32 },
-  label: { fontSize: 13, fontWeight: '700', marginBottom: 8, letterSpacing: 0.3 },
-  inputWrapper: { flexDirection: 'row', alignItems: 'center', borderRadius: 12, paddingHorizontal: 12, borderWidth: 1, height: 50, gap: 10 },
-  inputIcon: { fontSize: 18 },
-  input: { flex: 1, fontSize: 14, fontWeight: '500' },
-
-  securityBox: { flexDirection: 'row', alignItems: 'flex-start', padding: 12, borderRadius: 12, gap: 12 },
-  securityIcon: { fontSize: 18 },
-  securityContent: { flex: 1 },
-  securityTitle: { fontSize: 13, fontWeight: '700', marginBottom: 2 },
-  securityText: { fontSize: 12, lineHeight: 16 },
-
-  authButton: { paddingVertical: 16, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginTop: 12, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 12, elevation: 4 },
-  authButtonContent: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  authButtonEmoji: { fontSize: 18 },
-  authButtonText: { color: 'white', fontWeight: '700', fontSize: 16 },
-
-  helperText: { fontSize: 12, textAlign: 'center', marginTop: 12, fontWeight: '500' },
-
-  dividerSection: { marginVertical: 28, borderTopWidth: 1, alignItems: 'center', paddingVertical: 0, position: 'relative' },
-  dividerText: { fontSize: 12, position: 'absolute', top: -8, paddingHorizontal: 8, fontWeight: '500' },
-
-  demoCard: { paddingVertical: 16, paddingHorizontal: 16, borderRadius: 14, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1.5, marginBottom: 32, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.08, shadowRadius: 8, elevation: 2 },
-  demoCardContent: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  demoCardEmoji: { fontSize: 24 },
-  demoCardText: { flex: 1 },
-  demoCardTitle: { fontSize: 14, fontWeight: '700', color: 'white', marginBottom: 2 },
-  demoCardDesc: { fontSize: 12, color: 'rgba(255,255,255,0.8)' },
-  demoCardArrow: { fontSize: 18, color: 'white', fontWeight: '300' },
-
-  trustSection: { alignItems: 'center', marginBottom: 28 },
-  trustLabel: { fontSize: 11, fontWeight: '700', letterSpacing: 0.5, marginBottom: 12 },
-  trustBadges: { flexDirection: 'row', gap: 8, justifyContent: 'center' },
-  trustBadge: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 10, alignItems: 'center', gap: 4 },
-  trustBadgeEmoji: { fontSize: 16 },
-  trustBadgeText: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
-
-  footer: { alignItems: 'center', paddingTop: 12, paddingBottom: 40 },
-  footerText: { fontSize: 12, fontWeight: '500' },
+  stepBox: { flex: 1 },
+  stepLabel: { fontSize: 12, fontWeight: '800', letterSpacing: 1, marginBottom: 10 },
+  inputWrap: { flexDirection: 'row', alignItems: 'center', height: 62, borderRadius: 18, borderWidth: 2, paddingHorizontal: 18, gap: 10 },
+  input: { flex: 1, fontSize: 19, fontWeight: '600' },
+  eye: { fontSize: 20 },
+  check: { fontSize: 20, fontWeight: '900' },
+  strength: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 12 },
+  strengthBar: { flex: 1, flexDirection: 'row', gap: 4 },
+  strengthStep: { flex: 1, height: 5, borderRadius: 3 },
+  strengthText: { fontSize: 12, fontWeight: '800', minWidth: 60, textAlign: 'right' },
+  error: { fontSize: 13, fontWeight: '700', marginTop: 10 },
+  switch: { alignItems: 'center', marginTop: 22, paddingVertical: 6 },
+  switchText: { fontSize: 14, fontWeight: '700' },
 });

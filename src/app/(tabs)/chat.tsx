@@ -23,6 +23,7 @@ import { grrrCareApi, type SuggestedPartner } from '../../lib/grrrr-care-api';
 import { AppHeader } from '../../components/AppHeader';
 import { PetAvatar } from '../../components/PetAvatar';
 import { TAB_BAR_CLEARANCE } from '../../components/FloatingTabBar';
+import { CareSubscription } from '../../components/CareSubscription';
 
 const GRRR_LOGO = require('../../../assets/logo/grrrr.png');
 
@@ -34,6 +35,8 @@ interface Message {
   sources?: string[];
   partners?: SuggestedPartner[];
   error?: boolean;
+  /** The day's message limit was hit: Care+ is offered under the message */
+  limit?: boolean;
 }
 
 const PARTNER_EMOJI: Record<string, string> = { clinic: '🏥', pharmacy: '💊', supplies: '🛍️', insurance: '🛡️', food: '🥣', grooming: '✂️' };
@@ -108,7 +111,7 @@ export default function ChatScreen() {
       setMessages(prev => [...prev, { role: 'assistant', text: response.response, sources: response.sources, partners: response.partners }]);
     } catch (error: any) {
       console.error('Chat error:', error?.message || error);
-      setMessages(prev => [...prev, { role: 'assistant', text: error?.message || 'Error', error: true }]);
+      setMessages(prev => [...prev, { role: 'assistant', text: error?.message || 'Error', error: true, limit: error?.code === 'daily_limit' }]);
     } finally {
       setLoading(false);
     }
@@ -237,6 +240,11 @@ export default function ChatScreen() {
                     ]}
                   >
                     <Text style={[styles.botText, { color: msg.error ? colors.error : colors.text }]}>{msg.text}</Text>
+                    {msg.limit && (
+                      <View style={styles.limitCard}>
+                        <CareSubscription variant="limit" />
+                      </View>
+                    )}
                     {!!msg.sources?.length && (
                       <View style={[styles.sources, { borderTopColor: colors.border }]}>
                         <Text style={[styles.sourcesLabel, { color: colors.textSecondary }]}>
@@ -372,6 +380,7 @@ const styles = StyleSheet.create({
   botMiniImg: { width: 16, height: 16, tintColor: '#FFFFFF', resizeMode: 'contain' },
   botBubble: { paddingVertical: 12, paddingHorizontal: 14, borderRadius: 20, borderTopLeftRadius: 6, borderWidth: 1 },
   botText: { fontSize: 15, lineHeight: 22 },
+  limitCard: { marginTop: 12 },
   typing: { paddingHorizontal: 20 },
   sources: { borderTopWidth: 1, marginTop: 10, paddingTop: 8, gap: 3 },
   sourcesLabel: { fontSize: 11, fontWeight: '700', marginBottom: 2 },
