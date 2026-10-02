@@ -87,6 +87,12 @@ function RootLayoutContent() {
 }
 
 export default function RootLayout() {
+  // The native splash stays up until told otherwise: hide it once the first screen (a spinner at
+  // worst) is on screen, or a built app never gets past it.
+  useEffect(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
   return (
     <AuthProvider>
       <RootLayoutContent />
