@@ -112,8 +112,19 @@ export default function LoginScreen() {
       else await register(values.email.trim(), values.password, values.name.trim());
     } catch (e: any) {
       const message = String(e?.message ?? '');
+      if (e?.code === 'CONFIRM_EMAIL') {
+        // The account exists: once the email link is opened, signing in works.
+        setFlow('login');
+        setStep(1);
+        setError(tx('Account created! Open the link we emailed you, then sign in here.', 'Compte créé ! Ouvre le lien reçu par email, puis connecte-toi ici.'));
+        return;
+      }
       setError(
-        /invalid login|invalid credentials/i.test(message)
+        e?.code === 'EMAIL_TAKEN'
+          ? tx('This email already has an account (GRRRR or Care): sign in instead.', 'Cet email a déjà un compte (GRRRR ou Care) : connecte-toi plutôt.')
+          : /email not confirmed/i.test(message)
+          ? tx('Confirm your email first: open the link we sent you.', "Confirme d'abord ton email : ouvre le lien qu'on t'a envoyé.")
+          : /invalid login|invalid credentials/i.test(message)
           ? tx('Wrong email or password.', 'Email ou mot de passe incorrect.')
           : /already registered|already exists/i.test(message)
             ? tx('This email already has an account: sign in instead.', 'Cet email a déjà un compte : connecte-toi plutôt.')

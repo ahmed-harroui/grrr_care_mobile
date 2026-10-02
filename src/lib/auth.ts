@@ -22,7 +22,15 @@ export const authService = {
     });
     if (authError) throw authError;
 
-    if (authData.session && authData.user) {
+    // No session back: either the email already has an account (Supabase answers with an empty
+    // identities list rather than an error) or the email must be confirmed first. Either way the
+    // owner is not signed in yet, so say why instead of opening a half-signed-in app.
+    if (!authData.session) {
+      throw Object.assign(new Error(authData.user?.identities?.length === 0 ? 'already registered' : 'confirm email'), {
+        code: authData.user?.identities?.length === 0 ? 'EMAIL_TAKEN' : 'CONFIRM_EMAIL',
+      });
+    }
+    if (authData.user) {
       await this.updateProfile(authData.user.id, { name }).catch(e => console.warn('Profile name not saved:', e));
     }
 
