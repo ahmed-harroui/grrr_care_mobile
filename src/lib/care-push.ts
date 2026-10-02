@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import * as Notifications from 'expo-notifications';
+import type * as NotificationsModule from 'expo-notifications';
 import * as Device from 'expo-device';
 import Constants from 'expo-constants';
 import { supabase } from '@/lib/supabase';
@@ -11,6 +11,8 @@ import { supabase } from '@/lib/supabase';
 // Expo Go has no remote push since SDK 53 (it only warns): push only in the real app (EAS builds).
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 const isNative = (Platform.OS === 'ios' || Platform.OS === 'android') && !isExpoGo;
+// Loaded only where it works: in Expo Go, merely importing it logs an error and a warning.
+const Notifications: typeof NotificationsModule = isNative ? require('expo-notifications') : (null as any);
 type Language = 'en' | 'fr';
 const pick = (language: Language, en: string, fr: string) => (language === 'fr' ? fr : en);
 
@@ -24,7 +26,7 @@ if (isNative) {
 // One Android channel per kind of reminder (send-push picks it from the reminder's data).
 async function setUpChannels(language: Language) {
   if (Platform.OS !== 'android') return;
-  const channel = (id: string, en: string, fr: string, importance: Notifications.AndroidImportance) =>
+  const channel = (id: string, en: string, fr: string, importance: NotificationsModule.AndroidImportance) =>
     Notifications.setNotificationChannelAsync(id, { name: pick(language, en, fr), importance, lightColor: '#2563EB', vibrationPattern: [0, 150, 100, 150], showBadge: true });
   await Promise.all([
     channel('medications', 'Treatments', 'Traitements', Notifications.AndroidImportance.HIGH),

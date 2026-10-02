@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { authService } from '../lib/auth';
 import { grrrCareApi, setDemoMode } from '../lib/grrrr-care-api';
+import { signInWithGoogle, signOutGoogle } from '../lib/google-auth';
 
 interface User {
   id: string;
@@ -15,6 +16,8 @@ interface AuthContextType {
   isDemo: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name: string) => Promise<void>;
+  /** "Continue with Google" (Android builds): false when the picker was closed */
+  loginWithGoogle: () => Promise<boolean>;
   demoMode: () => void;
   logout: () => Promise<void>;
   // photo is a base64 image picked by the owner; it replaces the current avatar
@@ -124,6 +127,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Returns false when the owner closed Google's account picker; throws on a real failure.
+  const loginWithGoogle = async () => {
+    const result = await signInWithGoogle();
+    if (result.error) throw new Error(result.error);
+    if (result.cancelled) return false;
+    const currentUser = await authService.getCurrentUser();
+    if (currentUser) {
+      setUser(fromAuthUser(currentUser));
+      setIsDemo(false);
+      setDemoMode(false);
+      loadProfile(currentUser.id);
+    }
+    return true;
+  };
+
   const demoMode = () => {
     setUser(DEMO_USER);
     setIsDemo(true);
@@ -134,6 +152,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       if (!isDemo) {
         await authService.logout();
+        void signOutGoogle();
       }
       setUser(null);
       setIsDemo(false);
@@ -159,7 +178,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthContext.Provider
-      value={{ user, loading, isDemo, login, register, demoMode, logout, updateProfile, updateEmail, updatePassword }}
+      value={{ user, loading, isDemo, login, register, loginWithGoogle, demoMode, logout, updateProfile, updateEmail, updatePassword }}
     >
       {children}
     </AuthContext.Provider>

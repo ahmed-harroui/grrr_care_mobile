@@ -16,6 +16,7 @@ import Animated, {
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
+import { googleSignInAvailable } from '../lib/google-auth';
 
 // Sign-in and sign-up as a short conversation with the assistant: one question per screen, the
 // logo talks, the button wakes up once the answer is valid, and mistakes shake the field instead
@@ -44,7 +45,7 @@ function passwordStrength(password: string) {
 
 export default function LoginScreen() {
   const { colors } = useTheme();
-  const { login, register, demoMode } = useAuth();
+  const { login, register, loginWithGoogle, demoMode } = useAuth();
   const { language } = useLanguage();
   const tx = (en: string, fr: string) => (language === 'fr' ? fr : en);
 
@@ -124,6 +125,47 @@ export default function LoginScreen() {
     }
   };
 
+  // Google: a new account is made on the first time, then gets the pet setup like any other.
+  const [googleBusy, setGoogleBusy] = useState(false);
+  const continueWithGoogle = async () => {
+    if (googleBusy || loading) return;
+    setGoogleBusy(true);
+    setError(null);
+    try {
+      await loginWithGoogle();
+    } catch (e: any) {
+      setError(/DEVELOPER_ERROR|10:/.test(String(e?.message)) ? tx("Google sign-in isn't ready on this build yet.", "La connexion Google n'est pas encore prête sur cette version.") : String(e?.message ?? e));
+    } finally {
+      setGoogleBusy(false);
+    }
+  };
+
+  const googleButton = googleSignInAvailable ? (
+    <>
+      <Pressable
+        onPress={continueWithGoogle}
+        disabled={googleBusy}
+        style={({ pressed }) => [styles.google, { backgroundColor: '#FFFFFF', borderColor: '#DADCE0' }, pressed && styles.pressed]}
+      >
+        {googleBusy ? (
+          <ActivityIndicator color="#4285F4" />
+        ) : (
+          <>
+            <Text style={styles.googleG}>
+              <Text style={{ color: '#4285F4' }}>G</Text>
+            </Text>
+            <Text style={styles.googleText}>{tx('Continue with Google', 'Continuer avec Google')}</Text>
+          </>
+        )}
+      </Pressable>
+      <View style={styles.divider}>
+        <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+        <Text style={[styles.dividerText, { color: colors.textTertiary }]}>{tx('or with your email', 'ou avec ton email')}</Text>
+        <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+      </View>
+    </>
+  ) : null;
+
   // What the assistant says at each step.
   const bubble =
     flow === 'welcome'
@@ -183,6 +225,9 @@ export default function LoginScreen() {
               {tx('Health records, reminders and an assistant that knows your pet.', 'Carnet de santé, rappels et un assistant qui connaît ton compagnon.')}
             </Text>
 
+            {googleButton}
+            {error && <Text style={[styles.error, { color: colors.error, marginTop: 0, marginBottom: 6 }]}>{error}</Text>}
+
             <Pressable onPress={() => start('register')} style={({ pressed }) => [styles.primary, { backgroundColor: colors.primary, shadowColor: colors.primary }, pressed && styles.pressed]}>
               <Text style={styles.primaryText}>{tx('Create my account', 'Créer mon compte')}</Text>
             </Pressable>
@@ -197,6 +242,7 @@ export default function LoginScreen() {
           </Animated.View>
         ) : (
           <Animated.View key={`${flow}-${field}`} entering={FadeInRight.duration(300)} exiting={FadeOutLeft.duration(200)} style={styles.stepBox}>
+            {step === 0 && googleButton}
             <Text style={[styles.stepLabel, { color: colors.textSecondary }]}>
               {field === 'name' ? tx('YOUR FIRST NAME', 'TON PRÉNOM') : field === 'email' ? 'EMAIL' : tx('PASSWORD', 'MOT DE PASSE')}
             </Text>
@@ -320,5 +366,11 @@ const styles = StyleSheet.create({
   strengthText: { fontSize: 12, fontWeight: '800', minWidth: 60, textAlign: 'right' },
   error: { fontSize: 13, fontWeight: '700', marginTop: 10 },
   switch: { alignItems: 'center', marginTop: 22, paddingVertical: 6 },
+  google: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, height: 56, borderRadius: 18, borderWidth: 1, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 8, shadowOffset: { width: 0, height: 2 }, elevation: 2 },
+  googleG: { fontSize: 22, fontWeight: '900' },
+  googleText: { fontSize: 16, fontWeight: '700', color: '#3C4043' },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginVertical: 18 },
+  dividerLine: { flex: 1, height: 1 },
+  dividerText: { fontSize: 12, fontWeight: '600' },
   switchText: { fontSize: 14, fontWeight: '700' },
 });
