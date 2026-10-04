@@ -13,11 +13,15 @@ import {
   ScrollView,
   Platform,
   KeyboardTypeOptions,
+  Linking,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuth } from '../context/AuthContext';
+import { authService } from '../lib/auth';
+
+const SITE_URL = 'https://grrrr-main.vercel.app';
 
 type Photo = { uri: string; base64: string; mimeType: string };
 
@@ -26,7 +30,8 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // Profile and account block of the Settings page: identity card, edit sheet, password sheet and log out
 export function ProfileSection() {
   const { colors } = useTheme();
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
+  const tx = (en: string, fr: string) => (language === 'fr' ? fr : en);
   const { user, isDemo, logout, updateProfile, updateEmail, updatePassword } = useAuth();
 
   const [editing, setEditing] = useState(false);
@@ -43,6 +48,32 @@ export function ProfileSection() {
         onPress: () => logout().catch(error => Alert.alert(t('settings.saveError'), error?.message)),
       },
     ]);
+  };
+
+  // For good, and everywhere: the account is shared with the GRRRR app and the website.
+  const confirmDelete = () => {
+    Alert.alert(
+      tx('Delete your account?', 'Supprimer ton compte ?'),
+      tx(
+        'Your account, your pets, their health records and documents, and everything in the GRRRR app will be deleted for good. This cannot be undone.',
+        "Ton compte, tes compagnons, leur carnet de santé et leurs documents, et tout ce qui est dans l'app GRRRR seront supprimés définitivement. C'est irréversible."
+      ),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: tx('Delete for good', 'Supprimer définitivement'),
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await authService.deleteAccount(user.id);
+              await logout();
+            } catch (error: any) {
+              Alert.alert(t('settings.saveError'), error?.message);
+            }
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -82,11 +113,27 @@ export function ProfileSection() {
               <Text style={[styles.chevron, { color: colors.textTertiary }]}>›</Text>
             </TouchableOpacity>
           )}
-          <TouchableOpacity style={styles.row} onPress={confirmLogout}>
+          <TouchableOpacity style={[styles.row, !isDemo && { borderBottomColor: colors.border, borderBottomWidth: 1 }]} onPress={confirmLogout}>
             <Text style={[styles.rowText, { color: colors.error }]}>
               {isDemo ? t('settings.exitDemo') : t('settings.logout')}
             </Text>
           </TouchableOpacity>
+          {/* Legal pages (on the website) and account deletion, both asked for by the stores */}
+          {!isDemo && (
+            <>
+              <TouchableOpacity style={[styles.row, { borderBottomColor: colors.border, borderBottomWidth: 1 }]} onPress={() => Linking.openURL(`${SITE_URL}/privacy`)}>
+                <Text style={[styles.rowText, { color: colors.text }]}>{tx('Privacy', 'Confidentialité')}</Text>
+                <Text style={[styles.chevron, { color: colors.textTertiary }]}>↗</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.row, { borderBottomColor: colors.border, borderBottomWidth: 1 }]} onPress={() => Linking.openURL(`${SITE_URL}/terms`)}>
+                <Text style={[styles.rowText, { color: colors.text }]}>{tx('Terms of use', "Conditions d'utilisation")}</Text>
+                <Text style={[styles.chevron, { color: colors.textTertiary }]}>↗</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.row} onPress={confirmDelete}>
+                <Text style={[styles.rowText, { color: colors.error }]}>{tx('Delete my account', 'Supprimer mon compte')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </View>
       </View>
 

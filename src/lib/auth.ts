@@ -91,6 +91,17 @@ export const authService = {
     return data || [];
   },
 
+  // Deletes the signed-in account for good (GRRRR migration 026): its photos and documents are
+  // removed from Storage first, then the account, and with it its pets and their records.
+  async deleteAccount(userId: string) {
+    for (const bucket of ['pet-photos', 'pet-documents']) {
+      const { data: files } = await supabase.storage.from(bucket).list(userId, { limit: 1000 });
+      if (files?.length) await supabase.storage.from(bucket).remove(files.map(file => `${userId}/${file.name}`));
+    }
+    const { error } = await supabase.rpc('delete_my_account');
+    if (error) throw error;
+  },
+
   // Logout
   async logout() {
     const { error } = await supabase.auth.signOut();

@@ -139,7 +139,7 @@ export default function HomeScreen() {
                 {pet.breed}
               </Text>
               <Text style={[styles.petDetails, { color: colors.textTertiary }]}>
-                {pet.age} years · {pet.weight} kg
+                {[pet.age != null && (language === 'fr' ? `${pet.age} an${pet.age > 1 ? 's' : ''}` : `${pet.age} year${pet.age === 1 ? '' : 's'}`), pet.weight != null && `${pet.weight} kg`].filter(Boolean).join(' · ')}
               </Text>
             </View>
             <HealthBadge result={health} lang={language} colors={colors} />
@@ -209,16 +209,16 @@ export default function HomeScreen() {
           <View style={[styles.activityCard, { backgroundColor: colors.cardSecondary, borderLeftColor: colors.secondary, borderLeftWidth: 4 }]}>
             <Text style={[styles.activityEmoji, { color: colors.secondary }]}>💉</Text>
             <View style={styles.activityContent}>
-              <Text style={[styles.activityTitle, { color: colors.text }]}>Vaccinations</Text>
-              <Text style={[styles.activityValue, { color: colors.textSecondary }]}>{summary.vaccinations} on record</Text>
+              <Text style={[styles.activityTitle, { color: colors.text }]}>{language === 'fr' ? 'Vaccins' : 'Vaccinations'}</Text>
+              <Text style={[styles.activityValue, { color: colors.textSecondary }]}>{language === 'fr' ? `${summary.vaccinations} enregistré${summary.vaccinations > 1 ? 's' : ''}` : `${summary.vaccinations} on record`}</Text>
             </View>
           </View>
 
           <View style={[styles.activityCard, { backgroundColor: colors.cardSecondary, borderLeftColor: colors.primary, borderLeftWidth: 4 }]}>
             <Text style={[styles.activityEmoji, { color: colors.primary }]}>💊</Text>
             <View style={styles.activityContent}>
-              <Text style={[styles.activityTitle, { color: colors.text }]}>Medications</Text>
-              <Text style={[styles.activityValue, { color: colors.textSecondary }]}>{summary.medications} active</Text>
+              <Text style={[styles.activityTitle, { color: colors.text }]}>{language === 'fr' ? 'Traitements' : 'Medications'}</Text>
+              <Text style={[styles.activityValue, { color: colors.textSecondary }]}>{language === 'fr' ? `${summary.medications} en cours` : `${summary.medications} active`}</Text>
             </View>
           </View>
         </AnimatedCard>
