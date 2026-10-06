@@ -1,5 +1,18 @@
 import { supabase } from './supabase';
 
+// On the web the session lives in localStorage (sb-<project>-auth-token); on phones it is kept in memory only
+function forgetStoredSession() {
+  try {
+    const storage = (globalThis as any).localStorage as Storage | undefined;
+    if (!storage) return;
+    Object.keys(storage)
+      .filter(key => /^sb-.*-auth-token/.test(key))
+      .forEach(key => storage.removeItem(key));
+  } catch {
+    // No storage to clean
+  }
+}
+
 export const authService = {
   // Login with GRRRR account
   async loginWithEmail(email: string, password: string) {
@@ -102,10 +115,17 @@ export const authService = {
     if (error) throw error;
   },
 
-  // Logout
+  // Logout. Supabase's sign-out can fail or never answer (expired session, no network): the session
+  // kept by the browser is then forgotten anyway, or the next visit would sign back in.
   async logout() {
-    const { error } = await supabase.auth.signOut();
-    if (error) throw error;
+    const timeout = new Promise<{ error: Error }>(resolve =>
+      setTimeout(() => resolve({ error: new Error('Sign-out timed out') }), 4000)
+    );
+    const { error } = await Promise.race([supabase.auth.signOut(), timeout]);
+    if (error) {
+      forgetStoredSession();
+      throw error;
+    }
   },
 
   // Listen for auth changes
