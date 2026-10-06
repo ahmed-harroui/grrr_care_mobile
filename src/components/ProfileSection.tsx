@@ -40,6 +40,11 @@ export function ProfileSection() {
   if (!user) return null;
 
   const confirmLogout = () => {
+    // On the web, an Alert with buttons never shows: ask with the browser's own dialog
+    if (Platform.OS === 'web') {
+      if (isDemo || window.confirm(t('settings.logoutConfirm'))) void logout();
+      return;
+    }
     Alert.alert(isDemo ? t('settings.exitDemo') : t('settings.logout'), isDemo ? undefined : t('settings.logoutConfirm'), [
       { text: t('common.cancel'), style: 'cancel' },
       {

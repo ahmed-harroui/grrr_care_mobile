@@ -148,19 +148,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setDemoMode(true);
   };
 
+  // Signed out in the app even when Supabase can't be reached or the session already expired
   const logout = async () => {
-    try {
-      if (!isDemo) {
-        await authService.logout();
-        void signOutGoogle();
-      }
-      setUser(null);
-      setIsDemo(false);
-      setDemoMode(false);
-    } catch (error) {
-      console.error('Logout error:', error);
-      throw error;
+    if (!isDemo) {
+      await authService.logout().catch(error => console.warn('Logout error:', error));
+      void signOutGoogle();
     }
+    setUser(null);
+    setIsDemo(false);
+    setDemoMode(false);
   };
 
   const updateProfile: AuthContextType['updateProfile'] = async ({ name, photo }) => {
