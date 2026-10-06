@@ -9,10 +9,12 @@ export const onboardingSkipKey = (userId: string) => `onboarding-skipped:${userI
 
 interface PetOnboardingScreenProps {
   userId: string;
+  /** Starter card made at sign-up: filled in instead of creating a second pet */
+  starterPet?: any;
   onDone: () => void;
 }
 
-export function PetOnboardingScreen({ userId, onDone }: PetOnboardingScreenProps) {
+export function PetOnboardingScreen({ userId, starterPet, onDone }: PetOnboardingScreenProps) {
   const { colors } = useTheme();
   const { t } = useLanguage();
 
@@ -26,6 +28,7 @@ export function PetOnboardingScreen({ userId, onDone }: PetOnboardingScreenProps
       <AppHeader colors={colors} />
       <PetForm
         ownerId={userId}
+        pet={starterPet}
         onSaved={onDone}
         header={
           <View style={styles.intro}>

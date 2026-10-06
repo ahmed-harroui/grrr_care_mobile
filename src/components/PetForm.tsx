@@ -37,7 +37,8 @@ export function PetForm({ ownerId, pet, onSaved, header, footer }: PetFormProps)
   const { colors } = useTheme();
   const { t } = useLanguage();
 
-  const [name, setName] = useState(str(pet?.pet_name));
+  // A starter card's placeholder name ("Nouveau compagnon") is not the pet's real name
+  const [name, setName] = useState(pet?.setup_pending ? '' : str(pet?.pet_name));
   const [species, setSpecies] = useState(str(pet?.species).toLowerCase() || 'dog');
   const [breed, setBreed] = useState(str(pet?.breed));
   const [gender, setGender] = useState<string | null>(pet?.gender ?? null);
@@ -112,6 +113,7 @@ export function PetForm({ ownerId, pet, onSaved, header, footer }: PetFormProps)
         sterilized,
         allergies: orNull(allergies),
         care_notes: orNull(notes),
+        ...(pet?.setup_pending ? { setup_pending: false } : {}),
       };
       if (photo) {
         fields.photo_url = await grrrCareApi.uploadPetPhoto(ownerId, photo.base64, photo.mimeType);

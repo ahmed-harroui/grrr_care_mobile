@@ -24,6 +24,7 @@ export interface PetFields {
   owner_phone?: string | null;
   owner_email?: string | null;
   owner_address?: string | null;
+  setup_pending?: boolean;
 }
 
 export const DOCUMENT_TYPES = [

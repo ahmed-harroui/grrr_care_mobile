@@ -27,13 +27,19 @@ function CareBackground({ userId }: { userId: string }) {
 function SignedInApp({ userId }: { userId: string }) {
   const { colors } = useTheme();
   const [status, setStatus] = useState<'checking' | 'onboarding' | 'ready'>('checking');
+  // Starter card created with the account (GRRRR migration 008): the setup fills it in
+  const [starterPet, setStarterPet] = useState<any>(null);
 
   useEffect(() => {
     let active = true;
     (async () => {
       const skipped = await AsyncStorage.getItem(onboardingSkipKey(userId)).catch(() => null);
       const pets = skipped ? null : await grrrCareApi.getPets(userId).catch(() => null);
-      if (active) setStatus(pets && pets.length === 0 ? 'onboarding' : 'ready');
+      if (!active) return;
+      // A starter card doesn't count as a pet until it has been filled in
+      const needsSetup = !!pets && !pets.some((pet: any) => !pet.setup_pending);
+      setStarterPet(needsSetup ? pets.find((pet: any) => pet.setup_pending) ?? null : null);
+      setStatus(needsSetup ? 'onboarding' : 'ready');
     })();
     return () => {
       active = false;
@@ -49,7 +55,7 @@ function SignedInApp({ userId }: { userId: string }) {
   }
 
   if (status === 'onboarding') {
-    return <PetOnboardingScreen userId={userId} onDone={() => setStatus('ready')} />;
+    return <PetOnboardingScreen userId={userId} starterPet={starterPet} onDone={() => setStatus('ready')} />;
   }
 
   return (
