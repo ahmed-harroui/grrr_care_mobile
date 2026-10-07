@@ -27,6 +27,42 @@ export interface PetFields {
   setup_pending?: boolean;
 }
 
+// Kept in public.pet_private (owner only, migration 017), not on the pets table every GRRRR user can read
+const PRIVATE_FIELDS = [
+  'owner_name',
+  'owner_phone',
+  'owner_email',
+  'owner_address',
+  'tattoo',
+  'registration_number',
+  'distinguishing_marks',
+  'care_notes',
+] as const;
+
+function splitPrivate(fields: PetFields) {
+  const shared: Record<string, unknown> = { ...fields };
+  const privateFields: Record<string, unknown> = {};
+  for (const key of PRIVATE_FIELDS) {
+    if (key in shared) {
+      privateFields[key] = shared[key];
+      delete shared[key];
+    }
+  }
+  return { shared, privateFields };
+}
+
+async function savePrivate(petId: string, ownerId: string, privateFields: Record<string, unknown>) {
+  if (!Object.keys(privateFields).length) return {};
+  const { data, error } = await supabase
+    .from('pet_private')
+    .upsert({ ...privateFields, pet_id: petId, owner_id: ownerId, updated_at: new Date().toISOString() }, { onConflict: 'pet_id' })
+    .select()
+    .single();
+  if (error) throw error;
+  const { pet_id, owner_id, updated_at, ...saved } = data;
+  return saved;
+}
+
 export const DOCUMENT_TYPES = [
   'passport',
   'microchip_certificate',
@@ -118,17 +154,18 @@ export const grrrCareApi = {
       return null;
     }
 
-    const { data, error } = await supabase
-      .from('pets')
-      .select('*')
-      .eq('id', petId)
-      .single();
+    const [{ data, error }, { data: details }] = await Promise.all([
+      supabase.from('pets').select('*').eq('id', petId).single(),
+      supabase.from('pet_private').select('*').eq('pet_id', petId).maybeSingle(),
+    ]);
 
     if (error) {
       console.warn('getPetById error:', error);
       return null;
     }
-    return data;
+    if (!details) return data;
+    const { pet_id, owner_id, updated_at, ...privateFields } = details;
+    return { ...data, ...privateFields };
   },
 
   async createPet(ownerId: string, fields: PetFields) {
@@ -138,13 +175,14 @@ export const grrrCareApi = {
       return pet;
     }
 
+    const { shared, privateFields } = splitPrivate(fields);
     const { data, error } = await supabase
       .from('pets')
-      .insert({ ...fields, owner_id: ownerId })
+      .insert({ ...shared, owner_id: ownerId })
       .select()
       .single();
     if (error) throw error;
-    return data;
+    return { ...data, ...(await savePrivate(data.id, ownerId, privateFields)) };
   },
 
   async updatePet(petId: string, fields: PetFields) {
@@ -154,14 +192,15 @@ export const grrrCareApi = {
       return pet;
     }
 
+    const { shared, privateFields } = splitPrivate(fields);
     const { data, error } = await supabase
       .from('pets')
-      .update({ ...fields, updated_at: new Date().toISOString() })
+      .update({ ...shared, updated_at: new Date().toISOString() })
       .eq('id', petId)
       .select()
       .single();
     if (error) throw error;
-    return data;
+    return { ...data, ...(await savePrivate(petId, data.owner_id, privateFields)) };
   },
 
   // Returns a public https URL so the photo also shows in the GRRRR app and on other devices
@@ -536,6 +575,18 @@ export const grrrCareApi = {
       throw Object.assign(new Error(detail || error.message), { code });
     }
     return data;
+  },
+
+  // "Report this answer": kept in ai_reports for review in the Supabase dashboard (migration 017)
+  async reportAnswer(report: { petId: string | null; mode: string; question: string; answer: string }) {
+    if (demoMode) return;
+    const { error } = await supabase.from('ai_reports').insert({
+      pet_id: report.petId,
+      mode: report.mode,
+      question: report.question.slice(0, 2000),
+      answer: report.answer.slice(0, 4000),
+    });
+    if (error) throw error;
   },
 
   // Keyword answers from the knowledge base, used offline in demo mode (no account, so no Edge Function)

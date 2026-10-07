@@ -13,6 +13,7 @@ import {
   Platform,
   Image,
   Linking,
+  Alert,
 } from 'react-native';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
@@ -115,6 +116,26 @@ export default function ChatScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Google Play asks generative-AI apps to let users report an answer from inside the app
+  const [reported, setReported] = useState<Record<number, boolean>>({});
+  const report = (idx: number) => {
+    const answer = messages[idx];
+    const question = [...messages.slice(0, idx)].reverse().find(m => m.role === 'user')?.text ?? '';
+    const send = () =>
+      grrrCareApi
+        .reportAnswer({ petId: selectedPetId, mode: style, question, answer: answer.text })
+        .then(() => setReported(r => ({ ...r, [idx]: true })))
+        .catch(error => Alert.alert(t('chat.reportError'), error?.message));
+    if (Platform.OS === 'web') {
+      if (window.confirm(`${t('chat.reportTitle')}\n\n${t('chat.reportText')}`)) void send();
+      return;
+    }
+    Alert.alert(t('chat.reportTitle'), t('chat.reportText'), [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('chat.report'), style: 'destructive', onPress: () => void send() },
+    ]);
   };
 
   const petName = pet?.pet_name ?? '';
@@ -295,6 +316,15 @@ export default function ChatScreen() {
                           <Text style={styles.feedbackEmoji}>{v === 'up' ? '👍' : '👎'}</Text>
                         </TouchableOpacity>
                       ))}
+                      <TouchableOpacity
+                        onPress={() => report(idx)}
+                        disabled={reported[idx]}
+                        style={[styles.feedbackBtn, { borderColor: reported[idx] ? colors.primary : colors.border }]}
+                      >
+                        <Text style={[styles.reportText, { color: colors.textSecondary }]}>
+                          🚩 {reported[idx] ? t('chat.reported') : t('chat.report')}
+                        </Text>
+                      </TouchableOpacity>
                     </View>
                   )}
                 </View>
@@ -395,6 +425,7 @@ const styles = StyleSheet.create({
   feedbackRow: { flexDirection: 'row', gap: 6, marginTop: 6 },
   feedbackBtn: { paddingVertical: 4, paddingHorizontal: 10, borderRadius: 12, borderWidth: 1 },
   feedbackEmoji: { fontSize: 13 },
+  reportText: { fontSize: 12, fontWeight: '600' },
 
   inputArea: { paddingHorizontal: 16, paddingTop: 8 },
   inputPill: { flexDirection: 'row', alignItems: 'flex-end', borderWidth: 1, borderRadius: 26, paddingLeft: 18, paddingRight: 6, paddingVertical: 6, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.08, shadowRadius: 12, elevation: 4 },

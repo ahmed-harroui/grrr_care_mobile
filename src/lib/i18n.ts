@@ -69,6 +69,11 @@ export const translations = {
       call: 'Call',
       directions: 'Directions',
       medicalSources: 'Medical Sources',
+      report: 'Report',
+      reported: 'Reported, thank you',
+      reportTitle: 'Report this answer?',
+      reportText: 'Inappropriate, offensive or dangerous? It will be sent to the GRRR Care team for review.',
+      reportError: 'Could not send the report',
     },
     health: {
       healthRecords: 'Health Records',
@@ -305,6 +310,11 @@ export const translations = {
       call: 'Appeler',
       directions: 'Itinéraire',
       medicalSources: 'Sources Médicales',
+      report: 'Signaler',
+      reported: 'Signalé, merci',
+      reportTitle: 'Signaler cette réponse ?',
+      reportText: "Inappropriée, choquante ou dangereuse ? Elle sera envoyée à l'équipe GRRR Care pour vérification.",
+      reportError: "Impossible d'envoyer le signalement",
     },
     health: {
       healthRecords: 'Dossiers Médicaux',

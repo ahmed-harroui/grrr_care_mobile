@@ -325,8 +325,15 @@ Deno.serve(async req => {
     : [];
 
   // Every signed-in user can read all pets (GRRRR discovery policy), so ownership is checked explicitly
-  const { data: pet } = await admin.from('pets').select('*').eq('id', body.petId).maybeSingle();
-  if (!pet || pet.owner_id !== user.id) return json({ error: 'Pet not found' }, 404);
+  const { data: sharedPet } = await admin.from('pets').select('*').eq('id', body.petId).maybeSingle();
+  if (!sharedPet || sharedPet.owner_id !== user.id) return json({ error: 'Pet not found' }, 404);
+  // Notes, marks and identifiers live in pet_private (migration 017), readable by the owner only
+  const { data: details } = await admin
+    .from('pet_private')
+    .select('tattoo, registration_number, distinguishing_marks, care_notes')
+    .eq('pet_id', sharedPet.id)
+    .maybeSingle();
+  const pet = { ...sharedPet, ...(details ?? {}) };
 
   const { data: used, error: usageError } = await admin.rpc('increment_chat_usage', { p_user: user.id });
   if (usageError) {
