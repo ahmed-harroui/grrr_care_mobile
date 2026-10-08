@@ -4,7 +4,7 @@
 //   node scripts/partner-invites.mjs export               writes partner-invites.csv: who would be written to, and their link
 //   node scripts/partner-invites.mjs send --limit 50      dry run: lists the next 50 that would be sent
 //   node scripts/partner-invites.mjs send --limit 50 --yes   really sends them, and marks them as sent
-//   Filters for export and send: --category clinic|supplies|grooming   --postcode 33 (starts with)
+//   Filters for export and send: --category clinic|supplies|grooming   --postcode 33 (starts with)   --email one@address
 // Sending needs RESEND_API_KEY and EMAIL_FROM in the environment (the same as the partner-application function).
 // An establishment is written to once: sent, accepted and declined invitations are never sent again.
 // Needs the Supabase CLI, logged in and linked to the project.
@@ -63,6 +63,7 @@ function pending() {
   const filters = [`i.status = 'pending'`, 'p.is_published', 'not p.is_partner'];
   if (option('category')) filters.push(`p.category = ${literal(option('category'))}`);
   if (option('postcode')) filters.push(`p.postcode like ${literal(`${option('postcode')}%`)}`);
+  if (option('email')) filters.push(`i.email = ${literal(option('email').toLowerCase())}`);
   const limit = Number(option('limit')) > 0 ? `limit ${Number(option('limit'))}` : '';
   return query(`select i.partner_id, i.token, i.email, p.name, p.category, p.address, p.city, p.postcode
 from public.partner_invites i join public.partners p on p.id = i.partner_id
