@@ -3,6 +3,7 @@ import { View, Text, ScrollView, TouchableOpacity, StyleSheet, ActivityIndicator
 import * as Location from 'expo-location';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 import { grrrCareApi } from '../lib/grrrr-care-api';
 import { PartnersMapView } from './PartnersMapView';
 import { AppHeader } from '../components/AppHeader';
@@ -20,58 +21,36 @@ interface Partner {
   longitude?: number;
   rating: number | null;
   services?: any;
+  /** In km, from the owner's position */
   distance?: number;
+  /** Said yes to GRRR Care (form or invitation); the others are plain listings from OpenStreetMap */
+  is_partner?: boolean;
+  /** Offered to GRRR members by a partner */
+  discount_percent?: number | null;
 }
 
 export function FindVetScreen() {
   const { colors } = useTheme();
+  const { language } = useLanguage();
+  const tx = (en: string, fr: string) => (language === 'fr' ? fr : en);
   const [featured, setFeatured] = useState<Partner | null>(null);
   const [partners, setPartners] = useState<Partner[]>([]);
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; city?: string } | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
 
-  const calculateDistance = (lat1: number, lon1: number, lat2?: number, lon2?: number): number | undefined => {
-    if (lat2 == null || lon2 == null) return undefined;
-
-    const R = 3959;
-    const dLat = ((lat2 - lat1) * Math.PI) / 180;
-    const dLon = ((lon2 - lon1) * Math.PI) / 180;
-    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-              Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-              Math.sin(dLon / 2) * Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return parseFloat((R * c).toFixed(1));
-  };
-
   // The location is passed in: the state set just before isn't visible yet in this call
   const loadPartners = async (location: typeof userLocation, { quiet = false } = {}) => {
     try {
       if (!quiet) setLoading(true);
-      const [featuredData, allPartners] = await Promise.all([
+      // With a position the server returns the places around it, nearest first, with their distance
+      const [featuredData, nearby] = await Promise.all([
         grrrCareApi.getFeaturedPartner(),
-        grrrCareApi.getAllPartners(),
+        grrrCareApi.getAllPartners(location),
       ]);
 
-      console.log('Featured:', featuredData?.name, 'Partners:', allPartners.length, 'User location:', location?.city);
-
-      let enhancedPartners = allPartners;
-      if (location) {
-        enhancedPartners = allPartners
-          .map(p => ({
-            ...p,
-            distance: calculateDistance(location.latitude, location.longitude, p.latitude, p.longitude),
-          }))
-          .sort((a, b) => {
-            // Partners without coordinates go last
-            if (a.distance == null) return b.distance == null ? 0 : 1;
-            if (b.distance == null) return -1;
-            return a.distance - b.distance;
-          });
-      }
-
       setFeatured(featuredData);
-      setPartners(enhancedPartners);
+      setPartners(nearby.map((p: any) => ({ ...p, distance: p.distance_km == null ? undefined : Math.round(p.distance_km * 10) / 10 })));
     } catch (error) {
       console.error('Error loading partners:', error);
     } finally {
@@ -192,7 +171,7 @@ export function FindVetScreen() {
             <Text style={styles.toggleBtnText}>📋 List</Text>
           </TouchableOpacity>
           <Text style={[styles.mapTitle, { color: colors.text }]}>
-            {partners.filter(p => p.latitude && p.longitude).length} Partners
+            {partners.filter(p => p.latitude && p.longitude).length} {tx('places', 'établissements')}
           </Text>
         </View>
         <PartnersMapView partners={partners} userLocation={userLocation || undefined} />
@@ -211,9 +190,9 @@ export function FindVetScreen() {
       <View style={[styles.header, { backgroundColor: colors.background }]}>
         <View style={styles.headerContent}>
           <View style={styles.headerText}>
-            <Text style={[styles.greeting, { color: colors.text }]}>Find a Partner</Text>
+            <Text style={[styles.greeting, { color: colors.text }]}>{tx('Around you', 'Autour de toi')}</Text>
             <Text style={[styles.subtitle, { color: colors.textSecondary }]}>
-              {userLocation?.city ? `📍 ${userLocation.city}` : '🐾 Near you'}
+              {userLocation?.city ? `📍 ${userLocation.city}` : tx('🐾 Vets, pet shops and groomers', '🐾 Vétérinaires, animaleries et toiletteurs')}
             </Text>
           </View>
           <TouchableOpacity
@@ -292,8 +271,12 @@ export function FindVetScreen() {
       {/* All Partners */}
       {partners.length > 0 && (
         <View style={styles.partnersSection}>
-          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>ALL PARTNERS</Text>
-          <Text style={[styles.partnersSubtitle, { color: colors.textSecondary }]}>Browse all trusted services</Text>
+          <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
+            {userLocation ? tx('NEAR YOU', 'PRÈS DE CHEZ TOI') : tx('OUR PARTNERS', 'NOS PARTENAIRES')}
+          </Text>
+          <Text style={[styles.partnersSubtitle, { color: colors.textSecondary }]}>
+            {userLocation ? tx('Nearest first, within 30 km', "Du plus proche au plus loin, jusqu'à 30 km") : tx('Allow location to see the places around you', 'Autorise la localisation pour voir les établissements autour de toi')}
+          </Text>
 
           <View style={styles.partnersGrid}>
             {partners.map(partner => (
@@ -306,6 +289,13 @@ export function FindVetScreen() {
                   <Text style={styles.partnerEmoji}>{getCategoryEmoji(partner.category)}</Text>
                 </View>
                 <Text style={[styles.partnerName, { color: colors.text }]} numberOfLines={2}>{partner.name}</Text>
+                {partner.is_partner && (
+                  <View style={[styles.partnerBadge, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.partnerBadgeText}>
+                      🤝 {tx('Partner', 'Partenaire')}{partner.discount_percent ? ` · -${partner.discount_percent} %` : ''}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.partnerMeta}>
                   {/* Partners who joined through the form have no rating yet */}
                   {partner.rating != null && (
@@ -315,7 +305,7 @@ export function FindVetScreen() {
                 </View>
                 {/* != null: a distance of 0 would render a bare "0" outside <Text> and crash */}
                 {partner.distance != null && (
-                  <Text style={[styles.partnerDistance, { color: colors.textSecondary }]}>📍 {partner.distance} mi</Text>
+                  <Text style={[styles.partnerDistance, { color: colors.textSecondary }]}>📍 {partner.distance} km</Text>
                 )}
               </TouchableOpacity>
             ))}
@@ -327,12 +317,19 @@ export function FindVetScreen() {
       <View style={[styles.infoBox, { backgroundColor: colors.backgroundElement }]}>
         <Text style={styles.infoEmoji}>💡</Text>
         <View>
-          <Text style={[styles.infoTitle, { color: colors.text }]}>Partner Benefits</Text>
+          <Text style={[styles.infoTitle, { color: colors.text }]}>{tx('GRRR Care partners', 'Partenaires GRRR Care')}</Text>
           <Text style={[styles.infoText, { color: colors.textSecondary }]}>
-            All our partners are vetted and trusted by the GRRR Care community. Get exclusive discounts!
+            {tx(
+              'Places with the 🤝 badge are partners of GRRR Care; some offer a discount to members: mention GRRR when you visit.',
+              'Les établissements avec le badge 🤝 sont partenaires de GRRR Care ; certains offrent une réduction aux membres : dis que tu viens de GRRR.'
+            )}
           </Text>
         </View>
       </View>
+
+      <Text style={[styles.attribution, { color: colors.textTertiary }]}>
+        {tx('Places © OpenStreetMap contributors', 'Établissements © les contributeurs d’OpenStreetMap')}
+      </Text>
 
       <View style={{ height: 80 }} />
     </ScrollView>
@@ -433,6 +430,9 @@ const styles = StyleSheet.create({
   partnerRating: { fontSize: 11, fontWeight: '600' },
   partnerCategory: { fontSize: 10 },
   partnerDistance: { fontSize: 9, marginTop: 4, fontWeight: '500' },
+  partnerBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginBottom: 6 },
+  partnerBadgeText: { color: 'white', fontSize: 10, fontWeight: '700' },
+  attribution: { textAlign: 'center', fontSize: 10, marginBottom: 12 },
 
   // Info Box
   infoBox: { marginHorizontal: 20, marginBottom: 28, paddingVertical: 12, paddingHorizontal: 14, borderRadius: 14, flexDirection: 'row', gap: 10, alignItems: 'flex-start' },

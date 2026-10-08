@@ -737,19 +737,24 @@ export const grrrCareApi = {
     }
   },
 
-  async getAllPartners() {
+  // The map holds every vet, pet shop and groomer of the country (imported from OpenStreetMap, migration 018):
+  // with a position, the places around it, nearest first; without one, only the establishments that are partners.
+  async getAllPartners(location?: { latitude: number; longitude: number } | null) {
     try {
-      const { data, error } = await supabase
-        .from('partners')
-        .select('*')
-        .eq('is_published', true)
-        .order('rating', { ascending: false });
+      const { data, error } = location
+        ? await supabase.rpc('partners_near', { p_latitude: location.latitude, p_longitude: location.longitude, p_km: 30, p_limit: 200 })
+        : await supabase
+            .from('partners')
+            .select('*')
+            .eq('is_published', true)
+            .eq('is_partner', true)
+            .order('partner_since', { ascending: false })
+            .limit(200);
 
       if (error) {
         console.warn('All partners fetch error:', error);
         return [];
       }
-      console.log('Partners loaded:', data?.length || 0);
       return data || [];
     } catch (error) {
       console.warn('All partners error:', error);

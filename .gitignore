@@ -54,3 +54,7 @@ grrrr-11adb-*.json
 *firebase-adminsdk*.json
 *.apk
 *.aab
+
+# Written by scripts/partner-invites.mjs (the CSV holds each establishment's private link)
+partner-invite-preview.html
+partner-invites.csv

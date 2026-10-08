@@ -204,6 +204,8 @@ ${emergencies || '(none for this species)'}`;
 // shares the owner's position. Coordinates never reach the model, only distances.
 const MAX_PARTNERS = 6;
 const MAX_PARTNER_KM = 100;
+// A partner is put before nearer places only within this distance: nobody is sent far for a badge
+const PARTNER_FIRST_KM = 25;
 const PARTNER_KINDS: Record<string, string> = {
   clinic: 'veterinary clinic',
   pharmacy: 'pharmacy',
@@ -227,12 +229,15 @@ function distanceKm(from: Position, to: { latitude: number | null; longitude: nu
 }
 
 function partnersToSuggest(rows: any[], position: Position | null) {
+  const first = (p: any) => Boolean(p.is_partner) && (p.distance == null || p.distance <= PARTNER_FIRST_KM);
   const all = rows
     .map(p => ({ ...p, distance: position ? distanceKm(position, p) : null }))
     // Too far to be "near": better to send the owner to the map than to a clinic in another region
     .filter(p => !position || (p.distance != null && p.distance <= MAX_PARTNER_KM))
+    // Establishments that joined GRRR Care come first when they are close enough, then the nearest
     .sort((a, b) =>
-      position ? a.distance - b.distance : Number(b.is_featured) - Number(a.is_featured) || (b.rating ?? 0) - (a.rating ?? 0)
+      Number(first(b)) - Number(first(a)) ||
+      (position ? a.distance - b.distance : Number(b.is_featured) - Number(a.is_featured) || (b.rating ?? 0) - (a.rating ?? 0))
     );
   const clinics = all.filter(p => p.category === 'clinic').slice(0, 3);
   return [...clinics, ...all.filter(p => p.category !== 'clinic').slice(0, MAX_PARTNERS - clinics.length)];
@@ -246,7 +251,8 @@ function partnersPrompt(partners: any[], located: boolean) {
   }
   const lines = partners.map((p, i) => {
     const km = p.distance == null ? '' : ` — ${p.distance < 10 ? p.distance.toFixed(1) : Math.round(p.distance)} km away`;
-    return `[P${i + 1}] ${p.name} — ${PARTNER_KINDS[p.category] ?? p.category}${km}${p.address ? ` — ${p.address}` : ''}`;
+    const partner = p.is_partner ? ` — GRRR Care partner${p.discount_percent ? `, ${p.discount_percent}% off for GRRR members` : ''}` : '';
+    return `[P${i + 1}] ${p.name} — ${PARTNER_KINDS[p.category] ?? p.category}${km}${partner}${p.address ? ` — ${p.address}` : ''}`;
   });
   return `PARTNERS (establishments on the GRRR Care map${
     located ? ', nearest to the owner first' : '; the owner has not shared their position, so distances are unknown'
@@ -255,7 +261,8 @@ ${lines.join('\n')}
 - When the owner should see a vet, asks where to go, or needs a service one of these offers, recommend the best fitting one by name${
     located ? ' with its distance' : ''
   } and cite it like [P1]. Two at most. The app shows a card with its phone and directions, so don't write the phone number or the address.
-- In an emergency, name the nearest veterinary clinic right after telling the owner to contact a vet.
+- In an emergency, name the nearest veterinary clinic right after telling the owner to contact a vet, partner or not.
+- When you recommend a GRRR Care partner that offers a discount, say so in a few words (the owner mentions GRRR there).
 - Never mention an establishment that is not in this list, and don't recommend one when the question doesn't call for it.${
     located ? '' : ' Add that the map tab of the app shows the nearest ones.'
   }`;
@@ -372,10 +379,16 @@ Deno.serve(async req => {
       .select('doc_type, title, issued_on, expires_on, ai_summary, ai_content')
       .eq('pet_id', pet.id)
       .order('created_at'),
-    admin
-      .from('partners')
-      .select('id, name, category, address, phone, website, latitude, longitude, rating, is_featured')
-      .eq('is_published', true),
+    // The map holds the whole country (migration 018): only the places around the owner, or the partners
+    // when the app shares no position
+    position
+      ? admin.rpc('partners_near', { p_latitude: position.latitude, p_longitude: position.longitude, p_km: MAX_PARTNER_KM, p_limit: 80 })
+      : admin
+          .from('partners')
+          .select('id, name, category, address, phone, website, latitude, longitude, rating, is_featured, is_partner, discount_percent')
+          .eq('is_published', true)
+          .eq('is_partner', true)
+          .limit(80),
   ]);
   const records: PetRecords = {
     vaccinations: vaccinations.data ?? [],
