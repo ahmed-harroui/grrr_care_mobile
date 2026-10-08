@@ -127,7 +127,16 @@
   const $ = id => document.getElementById(id);
   const show = id => ['loading', 'offer', 'result'].forEach(s => ($(s).hidden = s !== id));
 
+  // ?demo: the page as an establishment sees it, on a made-up listing; nothing is sent or saved
+  const demo = new URLSearchParams(location.search).has('demo');
+  const SAMPLE = { ok: true, name: 'Clinique vétérinaire des Quais', category: 'Clinique vétérinaire', address: '12 quai des Chartrons, 33000 Bordeaux', status: 'pending', discount: null, listed: true };
+
   async function call(body) {
+    if (demo) {
+      if (body.action === 'accept') return { ...SAMPLE, status: 'accepted', discount: Number(body.discount) || null };
+      if (body.action === 'decline') return { ...SAMPLE, status: 'declined', listed: !body.remove };
+      return SAMPLE;
+    }
     const res = await fetch(ENDPOINT, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -185,7 +194,9 @@
   });
   $('change').addEventListener('click', () => show('offer'));
 
-  if (!token) {
+  if (demo) {
+    render(SAMPLE);
+  } else if (!token) {
     result('⚠️', 'Lien incomplet', 'Ouvrez cette page depuis le bouton de l\'e-mail que nous vous avons envoyé.', false);
   } else {
     call({ action: 'invite' }).then(render).catch(e => result('⚠️', 'Lien invalide', e.message, false));
