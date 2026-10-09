@@ -108,7 +108,7 @@ export function SettingsScreen() {
 
             <View style={styles.settingRow}>
               <Text style={[styles.settingTitle, { color: colors.text }]}>{t('settings.contact')}</Text>
-              <Text style={[styles.settingValue, { color: colors.accent }]}>support@grrr.care</Text>
+              <Text style={[styles.settingValue, { color: colors.accent }]}>ah001dev@gmail.com</Text>
             </View>
           </View>
         </View>

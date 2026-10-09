@@ -16,7 +16,7 @@ const CACHED = process.argv.includes('--cached');
 const CACHE = join(tmpdir(), 'grrr-care-osm-places.json');
 // The French community's server: fast for France, but it only answers by rectangle, not by region
 const SERVER = 'https://overpass.openstreetmap.fr/api/interpreter';
-const USER_AGENT = 'GRRR-Care-places-import/1.0 (contact@greatrascals.com)';
+const USER_AGENT = 'GRRR-Care-places-import/1.0 (ah001dev@gmail.com)';
 // Outline of mainland France and Corsica, to drop what a rectangle catches across a border
 const OUTLINE = 'https://raw.githubusercontent.com/gregoiredavid/france-geojson/master/metropole.geojson';
 const BATCH = 300;

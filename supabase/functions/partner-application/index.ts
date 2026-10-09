@@ -46,7 +46,7 @@ async function geocode(address: string) {
   }
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${q}`, {
-      headers: { 'User-Agent': 'GRRR Care partner form (support@grrr.care)' },
+      headers: { 'User-Agent': 'GRRR Care partner form (ah001dev@gmail.com)' },
     });
     const [place] = res.ok ? await res.json() : [];
     return place ? { latitude: Number(place.lat), longitude: Number(place.lon) } : null;

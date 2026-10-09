@@ -14,7 +14,7 @@ const BRANDS = {
     onPrimarySoft: '#BFDBFE',
     panel: '#F3F6FB',
     name: '<span style="color:#1A1A1A;">GRRR Care</span>',
-    footer: 'GRRR Care est édité par Great Rascals · contact@greatrascals.com',
+    footer: 'GRRR Care est édité par Great Rascals · ah001dev@gmail.com',
   },
   store: {
     page: '#FFF8F2',
@@ -23,7 +23,7 @@ const BRANDS = {
     onPrimarySoft: '#FFD5DE',
     panel: '#FFF0F3',
     name: '<span style="color:#292929;letter-spacing:-1px;">G</span><span style="color:#F43F5E;letter-spacing:-1px;">RRRR</span>',
-    footer: 'La boutique GRRRR est éditée par Great Rascals · contact@greatrascals.com',
+    footer: 'La boutique GRRRR est éditée par Great Rascals · ah001dev@gmail.com',
   },
 } as const;
 
