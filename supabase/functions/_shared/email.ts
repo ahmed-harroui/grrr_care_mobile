@@ -99,12 +99,26 @@ ${action}
 </html>`;
 }
 
-/** Sends one email through Resend (secrets RESEND_API_KEY and EMAIL_FROM), in the shared layout. */
+const SENDERS: Record<Brand, string> = { care: 'GRRR Care', store: 'GRRRR' };
+
+/**
+ * Sends one email through Resend, in the shared layout. Secrets: RESEND_API_KEY; EMAIL_FROM, an address on the
+ * domain verified in Resend (a "Name <address>" form works too: the name shown is the brand's anyway);
+ * REPLY_TO, where answers go (the sending domain receives no mail), else ADMIN_EMAIL.
+ */
 export async function sendEmail(to: string, subject: string, content: EmailContent) {
+  const address = (Deno.env.get('EMAIL_FROM') ?? '').replace(/^.*<|>.*$/g, '').trim();
+  const replyTo = Deno.env.get('REPLY_TO') ?? Deno.env.get('ADMIN_EMAIL');
   const res = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: Deno.env.get('EMAIL_FROM'), to, subject, html: emailLayout(content) }),
+    body: JSON.stringify({
+      from: `${SENDERS[content.brand]} <${address}>`,
+      to,
+      subject,
+      html: emailLayout(content),
+      ...(replyTo ? { reply_to: replyTo } : {}),
+    }),
   });
   if (!res.ok) throw new Error(`resend ${res.status}: ${await res.text()}`);
 }
