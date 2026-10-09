@@ -49,8 +49,22 @@
       width: 110px; font: inherit; font-weight: 700; color: var(--text); background: var(--field);
       border: 1px solid var(--border); border-radius: 12px; padding: 11px 12px;
     }
+    input[type=text] {
+      width: 100%; font: inherit; color: var(--text); background: var(--field);
+      border: 1px solid var(--border); border-radius: 12px; padding: 11px 12px;
+    }
     input:focus { outline: 2px solid var(--primary); outline-offset: 1px; }
     .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+    .field { position: relative; }
+    .hint.under-field { margin-bottom: 18px; }
+    /* Addresses proposed while typing */
+    .suggestions {
+      position: absolute; left: 0; right: 0; top: 100%; z-index: 5; margin: 4px 0 0; padding: 4px; list-style: none;
+      background: var(--card); border: 1px solid var(--border); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.15);
+    }
+    .suggestions li { padding: 10px 12px; border-radius: 9px; cursor: pointer; font-size: 15px; }
+    .suggestions li small { display: block; color: var(--muted); font-size: 12px; }
+    .suggestions li:hover, .suggestions li[aria-selected=true] { background: var(--field); }
     button {
       width: 100%; font: inherit; font-weight: 800; color: #fff; background: var(--primary);
       border: 0; border-radius: 14px; padding: 15px; cursor: pointer; margin-top: 20px;
@@ -97,6 +111,14 @@
         <li>C'est gratuit et sans engagement : vous pouvez vous retirer à tout moment</li>
       </ul>
 
+      <label for="address">Votre adresse : confirmez-la ou corrigez-la</label>
+      <div class="field">
+        <input id="address" type="text" maxlength="300" autocomplete="off" role="combobox" aria-autocomplete="list"
+               aria-controls="suggestions" aria-expanded="false" placeholder="12 rue Sainte-Catherine, 33000 Bordeaux">
+        <ul class="suggestions" id="suggestions" role="listbox" hidden></ul>
+      </div>
+      <div class="hint under-field">C'est elle qui vous place sur la carte. Commencez à écrire, puis choisissez dans la liste.</div>
+
       <label for="discount">Réduction offerte aux membres GRRR (facultatif)</label>
       <div class="discount">
         <input id="discount" type="number" min="1" max="50" step="1" inputmode="numeric" placeholder="10">
@@ -139,7 +161,7 @@
 
   async function call(body) {
     if (demo) {
-      if (body.action === 'accept') return { ...SAMPLE, status: 'accepted', discount: Number(body.discount) || null };
+      if (body.action === 'accept') return { ...SAMPLE, status: 'accepted', discount: Number(body.discount) || null, address: body.address || SAMPLE.address };
       if (body.action === 'decline') return { ...SAMPLE, status: 'declined', listed: !body.remove };
       return SAMPLE;
     }
@@ -169,6 +191,7 @@
     $('name').textContent = invite.name;
     $('details').textContent = [invite.category, invite.address].filter(Boolean).join(' · ');
     $('discount').value = invite.discount ?? '';
+    $('address').value = invite.address ?? '';
     if (invite.status === 'accepted') {
       result('🎉', 'Bienvenue parmi nos partenaires',
         `${invite.name} est maintenant partenaire GRRR Care` +
@@ -198,7 +221,76 @@
     }
   }
 
-  $('accept').addEventListener('click', e => answer(e.target, { action: 'accept', discount: $('discount').value.trim() }));
+  // Address suggestions from the national address base (IGN Géoplateforme: free, no key), as the partner types
+  const ADDRESSES = 'https://data.geopf.fr/geocodage/search';
+  const address = $('address');
+  const list = $('suggestions');
+  let lookup = 0;
+  let selected = -1;
+
+  function closeSuggestions() {
+    list.hidden = true;
+    list.replaceChildren();
+    selected = -1;
+    address.setAttribute('aria-expanded', 'false');
+  }
+
+  function choose(item) {
+    address.value = item.dataset.label;
+    closeSuggestions();
+  }
+
+  async function suggest() {
+    const typed = address.value.trim();
+    const mine = ++lookup;
+    if (typed.length < 4) return closeSuggestions();
+    try {
+      const res = await fetch(`${ADDRESSES}?q=${encodeURIComponent(typed)}&limit=5&autocomplete=1`);
+      const { features = [] } = res.ok ? await res.json() : {};
+      // A slower, older answer must not replace a newer one
+      if (mine !== lookup) return;
+      list.replaceChildren(...features.map((feature, index) => {
+        const p = feature.properties;
+        const item = document.createElement('li');
+        item.setAttribute('role', 'option');
+        item.id = `suggestion-${index}`;
+        item.dataset.label = p.label;
+        item.textContent = p.name;
+        const town = document.createElement('small');
+        town.textContent = [p.postcode, p.city].filter(Boolean).join(' ');
+        item.append(town);
+        // mousedown: before the field loses focus and the list closes
+        item.addEventListener('mousedown', event => { event.preventDefault(); choose(item); });
+        return item;
+      }));
+      list.hidden = features.length === 0;
+      selected = -1;
+      address.setAttribute('aria-expanded', String(features.length > 0));
+    } catch {
+      closeSuggestions();
+    }
+  }
+
+  let typing;
+  address.addEventListener('input', () => { clearTimeout(typing); typing = setTimeout(suggest, 250); });
+  address.addEventListener('blur', closeSuggestions);
+  address.addEventListener('keydown', event => {
+    const items = [...list.children];
+    if (list.hidden || !items.length) return;
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      event.preventDefault();
+      selected = (selected + (event.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+      items.forEach((item, index) => item.setAttribute('aria-selected', String(index === selected)));
+      address.setAttribute('aria-activedescendant', items[selected].id);
+    } else if (event.key === 'Enter' && selected >= 0) {
+      event.preventDefault();
+      choose(items[selected]);
+    } else if (event.key === 'Escape') {
+      closeSuggestions();
+    }
+  });
+
+  $('accept').addEventListener('click', e => answer(e.target, { action: 'accept', discount: $('discount').value.trim(), address: address.value.trim() }));
   $('decline').addEventListener('click', e => answer(e.target, { action: 'decline' }));
   $('remove').addEventListener('click', e => {
     if (confirm('Retirer votre établissement de la carte GRRR Care ?')) answer(e.target, { action: 'decline', remove: true });

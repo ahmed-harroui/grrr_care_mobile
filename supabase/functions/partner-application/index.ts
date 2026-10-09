@@ -171,6 +171,26 @@ async function confirm(admin: ReturnType<typeof createClient>, body: any) {
   return json({ ok: true, name: application.name });
 }
 
+// The address a partner confirms or corrects on its invitation page, found in the national address base
+// (the page suggests from the same base while typing): its official wording, town and position on the map.
+async function locate(address: string) {
+  const q = encodeURIComponent(address);
+  for (const base of ['https://data.geopf.fr/geocodage/search', 'https://api-adresse.data.gouv.fr/search/']) {
+    try {
+      const res = await fetch(`${base}?q=${q}&limit=1`);
+      const [feature] = res.ok ? (await res.json()).features ?? [] : [];
+      if (!feature) continue;
+      // A town alone is no address: the listing's own position is more precise than a town centre
+      if (feature.properties?.score < 0.6 || !['housenumber', 'street'].includes(feature.properties?.type)) return null;
+      const [longitude, latitude] = feature.geometry.coordinates;
+      return { address: String(feature.properties.label), city: feature.properties.city ?? null, postcode: feature.properties.postcode ?? null, latitude, longitude };
+    } catch (e) {
+      console.error('locate error', base, e);
+    }
+  }
+  return null;
+}
+
 // Invitations sent to the establishments imported from OpenStreetMap (migration 018, public/partenaire.html).
 // The token of the email link is the only proof asked: it shows the listing, accepts or declines.
 const MAX_DISCOUNT = 50;
@@ -214,10 +234,20 @@ async function accept(admin: ReturnType<typeof createClient>, body: any) {
   if (asked != null && (!Number.isInteger(asked) || asked < 1 || asked > MAX_DISCOUNT)) {
     return json({ error: `La réduction doit être un nombre entier entre 1 et ${MAX_DISCOUNT} %.` }, 400);
   }
+  // The address shown on the page, confirmed as it is or corrected. A corrected one moves the listing on the map
+  // when the address base knows it; otherwise the wording is kept and the position stays where it was.
+  const typed = text(body.address, 300);
+  const addressChanges: Record<string, unknown> = {};
+  if (typed.length >= 5 && typed !== (found.partner.address ?? found.partner.city ?? '')) {
+    const place = await locate(typed);
+    Object.assign(addressChanges, place ?? { address: typed });
+    found.partner.address = (addressChanges.address as string) ?? typed;
+  }
+
   const now = new Date().toISOString();
   const { error } = await admin
     .from('partners')
-    .update({ is_partner: true, is_published: true, partner_since: now, discount_percent: asked, updated_at: now })
+    .update({ ...addressChanges, is_partner: true, is_published: true, partner_since: now, discount_percent: asked, updated_at: now })
     .eq('id', found.partner.id);
   if (error) throw error;
   await admin.from('partner_invites').update({ status: 'accepted', answered_at: now }).eq('partner_id', found.partner.id);
