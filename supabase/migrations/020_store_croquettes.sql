@@ -63,7 +63,8 @@ insert into public.store_items (slug, name, croquettes) values
   ('colliers', 'Colliers', 50),
   ('medailles', 'Médailles', 40),
   ('jouets', 'Jouets', 34),
-  ('friandises', 'Friandises', 26)
+  ('friandises', 'Friandises', 26),
+  ('gourde', 'Gourde nomade', 36)
 on conflict (slug) do nothing;
 
 create table if not exists public.store_orders (
