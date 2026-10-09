@@ -14,8 +14,12 @@ import { grrrCareApi } from '@/lib/grrrr-care-api';
 import { Colors } from '@/constants/theme';
 import { useCareBackground } from '@/hooks/use-care-background';
 import { OpeningAnimation } from '@/components/OpeningAnimation';
+import { installWideScreenFrame } from '@/lib/wide-screen';
 
 SplashScreen.preventAutoHideAsync();
+
+// Tablets and computers: the app as a centred column instead of a phone layout stretched across the window
+installWideScreenFrame({ light: '#DDE3EC', dark: '#060A12' });
 
 // Reminders and home-screen widgets for the signed-in account.
 function CareBackground({ userId }: { userId: string }) {
