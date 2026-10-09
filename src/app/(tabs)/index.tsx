@@ -15,7 +15,7 @@ import { getPetHealthScore, type HealthScoreResult } from '../../lib/health-scor
 import { CareSubscription } from '../../components/CareSubscription';
 import { CommunityFeed } from '../../components/CommunityFeed';
 
-const STORE_URL = 'https://grrrr-store-89il.vercel.app/';
+const STORE_URL = 'https://store.greatrascals.com/';
 
 const LOGOS = {
   grrr: require('../../../assets/logo/grrrr.png'),

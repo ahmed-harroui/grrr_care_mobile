@@ -13,7 +13,7 @@ import { escapeHtml as escape, panel, paragraph, sendEmail } from '../_shared/em
 
 type Admin = ReturnType<typeof createClient>;
 
-const STORE_URL = (Deno.env.get('STORE_URL') ?? 'https://grrrr-store-89il.vercel.app').replace(/\/$/, '');
+const STORE_URL = (Deno.env.get('STORE_URL') ?? 'https://store.greatrascals.com').replace(/\/$/, '');
 const BUCKET = 'store-products';
 const MAX_PRODUCTS = 20;
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;

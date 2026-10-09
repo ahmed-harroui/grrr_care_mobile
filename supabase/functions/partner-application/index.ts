@@ -175,7 +175,7 @@ async function confirm(admin: ReturnType<typeof createClient>, body: any) {
 // The token of the email link is the only proof asked: it shows the listing, accepts or declines.
 const MAX_DISCOUNT = 50;
 // Where a partner adds its products to the GRRRR store (grrrr-store, store-products function)
-const STORE_PARTNERS_URL = `${(Deno.env.get('STORE_URL') ?? 'https://grrrr-store-89il.vercel.app').replace(/\/$/, '')}/partenaires`;
+const STORE_PARTNERS_URL = `${(Deno.env.get('STORE_URL') ?? 'https://store.greatrascals.com').replace(/\/$/, '')}/partenaires`;
 
 async function findInvite(admin: ReturnType<typeof createClient>, body: any) {
   const token = text(body.token, 64);
