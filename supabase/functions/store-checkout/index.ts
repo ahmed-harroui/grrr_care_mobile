@@ -9,6 +9,7 @@
 // declare in Stripe is this function's URL, for the event checkout.session.completed.
 // Deploy with --no-verify-jwt: packs and the webhook are public, the rest checks the session itself.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { escapeHtml as escape, panel, paragraph, sendEmail } from '../_shared/email.ts';
 
 type Admin = ReturnType<typeof createClient>;
 
@@ -32,17 +33,6 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 const text = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
-const escape = (s: string) =>
-  s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-
-async function sendEmail(to: string, subject: string, html: string) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: Deno.env.get('EMAIL_FROM'), to, subject, html }),
-  });
-  if (!res.ok) throw new Error(`resend ${res.status}: ${await res.text()}`);
-}
 
 async function signedIn(admin: Admin, req: Request) {
   const token = req.headers.get('Authorization')?.replace(/^Bearer\s+/i, '');
@@ -79,25 +69,30 @@ async function order(admin: Admin, req: Request, body: any) {
   }
 
   const lines = (data.items as any[])
-    .map(i => `<li>${i.quantity} × ${escape(i.name)}${i.variant ? ` (${escape(i.variant)})` : ''} · ${i.croquettes * i.quantity} croquettes</li>`)
-    .join('');
+    .map(i => `${i.quantity} × <b>${escape(i.name)}</b>${i.variant ? ` (${escape(i.variant)})` : ''} · ${i.croquettes * i.quantity} croquettes`)
+    .join('<br>');
+  const basket = panel('store', 'La commande', `${lines}<br><b>Total : ${data.total} croquettes</b>`);
   const where = `${escape(shipping.name)}<br>${escape(shipping.address)}<br>${escape(shipping.postcode)} ${escape(shipping.city)}${
     shipping.phone ? `<br>${escape(shipping.phone)}` : ''
   }`;
   const adminEmail = Deno.env.get('ADMIN_EMAIL');
   if (adminEmail) {
-    await sendEmail(
-      adminEmail,
-      `Nouvelle commande du store : ${data.total} croquettes`,
-      `<p>Commande <b>${data.order}</b> de ${escape(user.email ?? '')}</p><ul>${lines}</ul><p><b>Total : ${data.total} croquettes</b></p><p><b>À expédier à :</b><br>${where}</p>`
-    ).catch(e => console.error('admin order email error', e));
+    await sendEmail(adminEmail, `Nouvelle commande du store : ${data.total} croquettes`, {
+      brand: 'store',
+      kicker: 'Nouvelle commande',
+      title: `${data.total} croquettes, à expédier`,
+      body: paragraph(`Commande de <b>${escape(user.email ?? '')}</b><br><span style="font-size:13px;color:#666666;">${data.order}</span>`) + basket + panel('store', 'À expédier à', where),
+    }).catch(e => console.error('admin order email error', e));
   }
   if (user.email) {
-    await sendEmail(
-      user.email,
-      'Ta commande GRRRR est confirmée',
-      `<p>Merci ! Ta commande est enregistrée.</p><ul>${lines}</ul><p><b>Total : ${data.total} croquettes</b></p><p><b>Livraison :</b><br>${where}</p><p>L'équipe GRRRR</p>`
-    ).catch(e => console.error('buyer order email error', e));
+    await sendEmail(user.email, 'Ta commande GRRRR est confirmée', {
+      brand: 'store',
+      kicker: 'Commande confirmée',
+      title: 'Merci ! Ton colis se prépare',
+      body: paragraph('Ta commande est enregistrée et tes croquettes ont été débitées. On te prévient dès que le colis part.') + basket + panel('store', 'Livraison', where),
+      button: { label: 'Retourner à la boutique', url: STORE_URL },
+      signature: "L'équipe GRRRR",
+    }).catch(e => console.error('buyer order email error', e));
   }
   return json({ ok: true, order: data.order, total: data.total, balance: data.balance });
 }

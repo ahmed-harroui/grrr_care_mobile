@@ -9,6 +9,7 @@
 // Secrets: RESEND_API_KEY, EMAIL_FROM and ADMIN_EMAIL (shared with partner-application), STORE_URL (optional).
 // Deploy with --no-verify-jwt: the store is public.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { escapeHtml as escape, panel, paragraph, sendEmail } from '../_shared/email.ts';
 
 type Admin = ReturnType<typeof createClient>;
 
@@ -36,18 +37,7 @@ const json = (body: unknown, status = 200) =>
 
 const text = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 const isToken = (v: unknown) => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v);
-const escape = (s: string) =>
-  s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const euros = (cents: number) => `${(cents / 100).toFixed(2).replace('.', ',')} €`;
-
-async function sendEmail(to: string, subject: string, html: string) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: Deno.env.get('EMAIL_FROM'), to, subject, html }),
-  });
-  if (!res.ok) throw new Error(`resend ${res.status}: ${await res.text()}`);
-}
 
 // What the store shows of a product: never the review token
 const view = (p: any) => ({
@@ -165,16 +155,21 @@ async function add(admin: Admin, body: any) {
 
   const adminEmail = Deno.env.get('ADMIN_EMAIL');
   if (adminEmail) {
-    await sendEmail(
-      adminEmail,
-      `Produit à valider : ${name} (${partner.name})`,
-      `<p><b>${escape(partner.name)}</b>${partner.city ? ` (${escape(partner.city)})` : ''} propose un produit pour le store.</p>
-<p><b>${escape(name)}</b> · ${euros(product.price_cents)} · ${CATEGORIES[category]}</p>
-${description ? `<p>${escape(description)}</p>` : ''}
-${productUrl ? `<p>${escape(productUrl)}</p>` : ''}
-<p><img src="${product.image_url}" alt="" width="260" style="border-radius:12px"></p>
-<p><a href="${STORE_URL}/partenaires?review=${product.review_token}">Voir et publier ou refuser ce produit</a></p>`
-    ).catch(e => console.error('admin email error', e));
+    await sendEmail(adminEmail, `Produit à valider : ${name} (${partner.name})`, {
+      brand: 'store',
+      kicker: 'Produit à valider',
+      title: `${partner.name} propose un produit`,
+      body:
+        paragraph(`<b>${escape(partner.name)}</b>${partner.city ? ` (${escape(partner.city)})` : ''} propose un produit pour le rayon Partenaires du store.`) +
+        panel(
+          'store',
+          CATEGORIES[category],
+          `<b>${escape(name)}</b> · ${euros(product.price_cents)}${description ? `<br>${escape(description)}` : ''}${productUrl ? `<br>${escape(productUrl)}` : ''}`
+        ) +
+        `<p style="margin:0 0 16px;"><img src="${product.image_url}" alt="" width="260" style="border-radius:14px;max-width:100%;"></p>`,
+      button: { label: 'Voir, puis publier ou refuser', url: `${STORE_URL}/partenaires?review=${product.review_token}` },
+      hint: 'Le produit reste invisible sur le store tant que vous ne l’avez pas publié.',
+    }).catch(e => console.error('admin email error', e));
   }
   return json({ ok: true, product: view(product) });
 }

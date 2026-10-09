@@ -10,6 +10,7 @@
 // hosted, the confirmation link points to it), ADMIN_EMAIL (optional, told about each confirmed application).
 // Deploy with --no-verify-jwt: the form is public.
 import { createClient } from 'npm:@supabase/supabase-js@2';
+import { escapeHtml as escape, panel, paragraph, sendEmail } from '../_shared/email.ts';
 
 const CATEGORIES: Record<string, string> = {
   clinic: 'Clinique vétérinaire',
@@ -28,17 +29,6 @@ const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } });
 
 const text = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
-const escape = (s: string) =>
-  s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-
-async function sendEmail(to: string, subject: string, html: string) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY')}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: Deno.env.get('EMAIL_FROM'), to, subject, html }),
-  });
-  if (!res.ok) throw new Error(`resend ${res.status}: ${await res.text()}`);
-}
 
 // French national address base first (free, no key, precise to the house number), then OpenStreetMap for
 // addresses outside France. Both are free; one request per application is well within their usage policies.
@@ -104,16 +94,19 @@ async function apply(admin: ReturnType<typeof createClient>, body: any) {
   if (error) throw error;
 
   const link = `${Deno.env.get('PARTNER_FORM_URL')}?token=${application.token}`;
-  await sendEmail(
-    fields.email,
-    'Confirmez votre inscription sur GRRR Care',
-    `<p>Bonjour,</p>
-<p>Merci d'avoir inscrit <b>${escape(fields.name)}</b> sur la carte GRRR Care.</p>
-<p>Pour confirmer votre adresse e-mail, cliquez sur ce lien :</p>
-<p><a href="${link}">Confirmer mon inscription</a></p>
-<p>Votre établissement apparaîtra sur la carte après vérification par notre équipe.</p>
-<p>Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.</p>`
-  );
+  await sendEmail(fields.email, 'Confirmez votre inscription sur GRRR Care', {
+    brand: 'care',
+    kicker: 'Inscription partenaire',
+    title: 'Plus qu’un clic pour confirmer votre inscription',
+    body:
+      paragraph('Bonjour,') +
+      paragraph(`Merci d'avoir inscrit <b>${escape(fields.name)}</b> sur la carte GRRR Care.`) +
+      panel('care', 'Votre établissement', `<b>${escape(fields.name)}</b><br>${CATEGORIES[fields.category]} · ${escape(fields.address)}`) +
+      paragraph('Confirmez votre adresse e-mail avec le bouton ci-dessous. Votre établissement apparaîtra sur la carte après vérification par notre équipe.'),
+    button: { label: 'Confirmer mon inscription', url: link },
+    signature: "L'équipe GRRR Care",
+    footnote: "Si vous n'êtes pas à l'origine de cette demande, ignorez cet e-mail.",
+  });
   return json({ ok: true });
 }
 
@@ -156,17 +149,23 @@ async function confirm(admin: ReturnType<typeof createClient>, body: any) {
   const adminEmail = Deno.env.get('ADMIN_EMAIL');
   if (adminEmail) {
     const located = application.latitude != null;
-    await sendEmail(
-      adminEmail,
-      `Nouvel établissement à valider : ${application.name}`,
-      `<p><b>${escape(application.name)}</b> (${CATEGORIES[application.category]}) a confirmé son e-mail.</p>
-<p>${escape(application.address)}<br>${escape(application.phone)} · ${escape(application.email)}${
-        application.website ? `<br>${escape(application.website)}` : ''
-      }</p>
-${application.description ? `<p>${escape(application.description)}</p>` : ''}
-${located ? '' : "<p><b>Adresse introuvable sur la carte :</b> renseignez latitude et longitude à la main.</p>"}
-<p>Pour le publier : <a href="https://grrrr-main.vercel.app/studio">Studio</a> → Tableau de bord → Demandes de partenaires → Publier sur la carte.</p>`
-    ).catch(e => console.error('admin email error', e));
+    await sendEmail(adminEmail, `Nouvel établissement à valider : ${application.name}`, {
+      brand: 'care',
+      kicker: 'À valider',
+      title: `${application.name} a confirmé son e-mail`,
+      body:
+        panel(
+          'care',
+          CATEGORIES[application.category],
+          `<b>${escape(application.name)}</b><br>${escape(application.address)}<br>${escape(application.phone)} · ${escape(application.email)}${
+            application.website ? `<br>${escape(application.website)}` : ''
+          }`
+        ) +
+        (application.description ? paragraph(escape(application.description)) : '') +
+        (located ? '' : paragraph('<b>Adresse introuvable sur la carte :</b> renseignez latitude et longitude à la main.')) +
+        paragraph('Pour le publier : Studio → Tableau de bord → Demandes de partenaires → Publier sur la carte.'),
+      button: { label: 'Ouvrir le Studio', url: 'https://grrrr-main.vercel.app/studio' },
+    }).catch(e => console.error('admin email error', e));
   }
 
   return json({ ok: true, name: application.name });
@@ -227,31 +226,42 @@ async function accept(admin: ReturnType<typeof createClient>, body: any) {
   if (found.invite.status !== 'accepted') {
     const storeLink = `${STORE_PARTNERS_URL}?token=${found.invite.token}`;
     const careLink = `https://care.greatrascals.com/partenaire?token=${found.invite.token}`;
-    await sendEmail(
-      found.invite.email,
-      `${found.partner.name} est partenaire GRRR Care`,
-      `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#1A1A1A;max-width:520px;">
-<p>Bonjour,</p>
-<p>C'est confirmé : <b>${escape(found.partner.name)}</b> apparaît maintenant comme <b>partenaire</b> dans l'application GRRR Care${
-        asked ? `, avec <b>${asked} % de réduction</b> pour les membres GRRR` : ''
-      }.</p>
-<p><b>Vous vendez des produits pour animaux ?</b> Ajoutez-les à notre store : ils seront proposés aux propriétaires, avec votre nom et le lien vers chez vous.</p>
-<p><a href="${storeLink}" style="display:inline-block;background:#2563EB;color:#FFFFFF;font-weight:800;text-decoration:none;padding:14px 26px;border-radius:14px;">Ajouter mes produits au store&nbsp;→</a></p>
-<p style="font-size:14px;color:#666666;">Ce lien est personnel : gardez cet e-mail pour revenir gérer vos produits. Pour modifier votre réduction ou vous retirer : <a href="${careLink}" style="color:#666666;">votre page partenaire</a>.</p>
-<p>Merci de votre confiance,<br><b>L'équipe GRRR Care</b></p>
-</div>`
-    ).catch(e => console.error('partner confirmation email error', e));
+    await sendEmail(found.invite.email, `${found.partner.name} est partenaire GRRR Care`, {
+      brand: 'care',
+      kicker: 'Partenariat confirmé',
+      title: 'Bienvenue parmi les partenaires GRRR Care',
+      body:
+        paragraph('Bonjour,') +
+        paragraph(`C'est confirmé : <b>${escape(found.partner.name)}</b> apparaît maintenant comme <b>partenaire</b> dans l'application GRRR Care.`) +
+        panel(
+          'care',
+          'Votre fiche',
+          `<b>${escape(found.partner.name)}</b><br>${escape(found.partner.address ?? found.partner.city ?? '')}<br>Réduction pour les membres GRRR : <b>${
+            asked ? `${asked} %` : 'aucune'
+          }</b>`
+        ) +
+        paragraph('<b>Vous vendez des produits pour animaux ?</b> Ajoutez-les à notre store : ils seront proposés aux propriétaires, avec votre nom et le lien vers chez vous.'),
+      button: { label: 'Ajouter mes produits au store', url: storeLink },
+      hint: 'Ce lien est personnel : gardez cet e-mail pour revenir gérer vos produits.',
+      signature: "L'équipe GRRR Care",
+      footnote: `Pour modifier votre réduction ou vous retirer : <a href="${careLink}" style="color:#6B7280;">votre page partenaire</a>.`,
+    }).catch(e => console.error('partner confirmation email error', e));
   }
 
   const adminEmail = Deno.env.get('ADMIN_EMAIL');
   if (adminEmail && found.invite.status !== 'accepted') {
-    await sendEmail(
-      adminEmail,
-      `Nouveau partenaire : ${found.partner.name}`,
-      `<p><b>${escape(found.partner.name)}</b> (${CATEGORIES[found.partner.category] ?? found.partner.category}) a accepté l'invitation.</p>
-<p>${escape(found.partner.address ?? found.partner.city ?? '')}</p>
-<p>Réduction pour les membres GRRR : ${asked ? `${asked} %` : 'aucune'}</p>`
-    ).catch(e => console.error('admin email error', e));
+    await sendEmail(adminEmail, `Nouveau partenaire : ${found.partner.name}`, {
+      brand: 'care',
+      kicker: 'Nouveau partenaire',
+      title: `${found.partner.name} a accepté l'invitation`,
+      body: panel(
+        'care',
+        CATEGORIES[found.partner.category] ?? found.partner.category,
+        `<b>${escape(found.partner.name)}</b><br>${escape(found.partner.address ?? found.partner.city ?? '')}<br>Réduction pour les membres GRRR : <b>${
+          asked ? `${asked} %` : 'aucune'
+        }</b>`
+      ),
+    }).catch(e => console.error('admin email error', e));
   }
   return json({ ...inviteView(found), status: 'accepted', discount: asked, listed: true });
 }
