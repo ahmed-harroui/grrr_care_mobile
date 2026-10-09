@@ -175,11 +175,13 @@ ${located ? '' : "<p><b>Adresse introuvable sur la carte :</b> renseignez latitu
 // Invitations sent to the establishments imported from OpenStreetMap (migration 018, public/partenaire.html).
 // The token of the email link is the only proof asked: it shows the listing, accepts or declines.
 const MAX_DISCOUNT = 50;
+// Where a partner adds its products to the GRRRR store (grrrr-store, store-products function)
+const STORE_PARTNERS_URL = `${(Deno.env.get('STORE_URL') ?? 'https://grrrr-store-89il.vercel.app').replace(/\/$/, '')}/partenaires`;
 
 async function findInvite(admin: ReturnType<typeof createClient>, body: any) {
   const token = text(body.token, 64);
   if (!/^[0-9a-f-]{36}$/i.test(token)) return null;
-  const { data: invite } = await admin.from('partner_invites').select('partner_id, status').eq('token', token).maybeSingle();
+  const { data: invite } = await admin.from('partner_invites').select('partner_id, status, email, token').eq('token', token).maybeSingle();
   if (!invite) return null;
   const { data: partner } = await admin
     .from('partners')
@@ -220,6 +222,26 @@ async function accept(admin: ReturnType<typeof createClient>, body: any) {
     .eq('id', found.partner.id);
   if (error) throw error;
   await admin.from('partner_invites').update({ status: 'accepted', answered_at: now }).eq('partner_id', found.partner.id);
+
+  // The confirmation the partner keeps: what it agreed to, and the link to its corner of the GRRRR store
+  if (found.invite.status !== 'accepted') {
+    const storeLink = `${STORE_PARTNERS_URL}?token=${found.invite.token}`;
+    const careLink = `https://care.greatrascals.com/partenaire?token=${found.invite.token}`;
+    await sendEmail(
+      found.invite.email,
+      `${found.partner.name} est partenaire GRRR Care`,
+      `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#1A1A1A;max-width:520px;">
+<p>Bonjour,</p>
+<p>C'est confirmé : <b>${escape(found.partner.name)}</b> apparaît maintenant comme <b>partenaire</b> dans l'application GRRR Care${
+        asked ? `, avec <b>${asked} % de réduction</b> pour les membres GRRR` : ''
+      }.</p>
+<p><b>Vous vendez des produits pour animaux ?</b> Ajoutez-les à notre store : ils seront proposés aux propriétaires, avec votre nom et le lien vers chez vous.</p>
+<p><a href="${storeLink}" style="display:inline-block;background:#2563EB;color:#FFFFFF;font-weight:800;text-decoration:none;padding:14px 26px;border-radius:14px;">Ajouter mes produits au store&nbsp;→</a></p>
+<p style="font-size:14px;color:#666666;">Ce lien est personnel : gardez cet e-mail pour revenir gérer vos produits. Pour modifier votre réduction ou vous retirer : <a href="${careLink}" style="color:#666666;">votre page partenaire</a>.</p>
+<p>Merci de votre confiance,<br><b>L'équipe GRRR Care</b></p>
+</div>`
+    ).catch(e => console.error('partner confirmation email error', e));
+  }
 
   const adminEmail = Deno.env.get('ADMIN_EMAIL');
   if (adminEmail && found.invite.status !== 'accepted') {

@@ -56,6 +56,10 @@
       border: 0; border-radius: 14px; padding: 15px; cursor: pointer; margin-top: 20px;
     }
     button:disabled { opacity: .6; cursor: wait; }
+    a.button {
+      display: block; font-weight: 800; color: #fff; background: var(--primary); text-decoration: none;
+      border-radius: 14px; padding: 15px; margin-top: 20px;
+    }
     button.quiet {
       background: transparent; color: var(--muted); font-weight: 600; font-size: 14px;
       padding: 8px; margin-top: 10px; text-decoration: underline;
@@ -111,6 +115,8 @@
     <div class="icon" id="result-icon"></div>
     <h2 id="result-title"></h2>
     <p id="result-text"></p>
+    <!-- Partners only: their corner of the GRRRR store, opened with the same personal link -->
+    <a class="button" id="store" hidden>Ajouter mes produits au store GRRRR&nbsp;→</a>
     <button class="quiet" id="change" hidden>Modifier ma réponse</button>
   </section>
 
@@ -147,11 +153,15 @@
     return data;
   }
 
-  function result(icon, title, text, canChange = true) {
+  const STORE = 'https://grrrr-store-89il.vercel.app/partenaires';
+
+  function result(icon, title, text, canChange = true, partner = false) {
     $('result-icon').textContent = icon;
     $('result-title').textContent = title;
     $('result-text').textContent = text;
     $('change').hidden = !canChange;
+    $('store').hidden = !partner;
+    $('store').href = demo ? `${STORE}` : `${STORE}?token=${token}`;
     show('result');
   }
 
@@ -162,7 +172,8 @@
     if (invite.status === 'accepted') {
       result('🎉', 'Bienvenue parmi nos partenaires',
         `${invite.name} est maintenant partenaire GRRR Care` +
-        (invite.discount ? `, avec ${invite.discount} % de réduction pour les membres GRRR.` : '.'));
+        (invite.discount ? `, avec ${invite.discount} % de réduction pour les membres GRRR.` : '.') +
+        ' Vous vendez des produits pour animaux ? Ajoutez-les à notre store, ils seront proposés aux propriétaires.', true, true);
     } else if (invite.status === 'declined') {
       result('👋', 'C\'est noté',
         invite.listed ? 'Nous ne vous écrirons plus. Votre fiche reste visible sur la carte, sans mention partenaire.'
