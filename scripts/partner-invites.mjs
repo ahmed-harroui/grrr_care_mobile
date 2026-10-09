@@ -5,7 +5,9 @@
 //   node scripts/partner-invites.mjs send --limit 50      dry run: lists the next 50 that would be sent
 //   node scripts/partner-invites.mjs send --limit 50 --yes   really sends them, and marks them as sent
 //   Filters for export and send: --category clinic|supplies|grooming   --postcode 33 (starts with)   --email one@address
-// Sending needs RESEND_API_KEY and EMAIL_FROM in the environment (the same as the partner-application function).
+//   node scripts/partner-invites.mjs test --to you@address   sends you the email, on a made-up listing
+// Sending needs RESEND_API_KEY and EMAIL_FROM in the environment (the same as the partner-application function);
+// answers go to REPLY_TO.
 // An establishment is written to once: sent, accepted and declined invitations are never sent again.
 // Needs the Supabase CLI, logged in and linked to the project.
 import { execFileSync } from 'node:child_process';
@@ -47,7 +49,7 @@ const escape = text => String(text ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp
 const literal = text => `'${String(text).replace(/'/g, "''")}'`;
 
 function emailHtml(invite) {
-  const link = `${PAGE}?token=${invite.token}`;
+  const link = invite.link ?? `${PAGE}?token=${invite.token}`;
   const marks = {
     name: escape(invite.name),
     kind: KIND[invite.category] ?? 'un professionnel de confiance',
@@ -57,6 +59,21 @@ function emailHtml(invite) {
     decline_url: `${link}#non`,
   };
   return readFileSync(join(ROOT, 'emails', 'partner-invite.html'), 'utf8').replace(/\{\{(\w+)\}\}/g, (_, mark) => marks[mark] ?? '');
+}
+
+// The sending domain receives no mail: answers go to REPLY_TO
+const REPLY_TO = process.env.REPLY_TO ?? 'ah001dev@gmail.com';
+
+async function mail(to, subject, html) {
+  const { RESEND_API_KEY, EMAIL_FROM } = process.env;
+  if (!RESEND_API_KEY || !EMAIL_FROM) throw new Error('Set RESEND_API_KEY and EMAIL_FROM first.');
+  const res = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: EMAIL_FROM, to, subject, html, reply_to: REPLY_TO }),
+  });
+  if (!res.ok) console.warn(`not sent to ${to}: ${res.status} ${(await res.text()).slice(0, 200)}`);
+  return res.ok;
 }
 
 function pending() {
@@ -107,22 +124,19 @@ select (select count(*) from created) as created, (select count(*) from public.p
     console.log(`\n${rows.length} would be sent. Add --yes to send them.`);
     process.exit(0);
   }
-  const { RESEND_API_KEY, EMAIL_FROM } = process.env;
-  if (!RESEND_API_KEY || !EMAIL_FROM) throw new Error('Set RESEND_API_KEY and EMAIL_FROM first.');
   const sent = [];
   for (const invite of rows) {
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: EMAIL_FROM, to: invite.email, subject: SUBJECT(invite.name), html: emailHtml(invite) }),
-    });
-    if (res.ok) sent.push(invite.partner_id);
-    else console.warn(`not sent to ${invite.email}: ${res.status} ${(await res.text()).slice(0, 200)}`);
+    if (await mail(invite.email, SUBJECT(invite.name), emailHtml(invite))) sent.push(invite.partner_id);
     // Resend allows a few emails per second
     await new Promise(resolve => setTimeout(resolve, 600));
   }
   if (sent.length) query(`update public.partner_invites set status = 'sent', sent_at = now() where partner_id in (${sent.map(literal).join(', ')}) returning 1;`);
   console.log(`${sent.length} / ${rows.length} sent.`);
+} else if (command === 'test') {
+  // The email as an establishment receives it, on a made-up listing; its button opens the page's demo
+  if (!option('to')) throw new Error('Give --to your@address');
+  const sample = { name: 'Clinique vétérinaire des Quais', category: 'clinic', address: '12 quai des Chartrons, 33000 Bordeaux', city: 'Bordeaux', link: `${PAGE}?demo` };
+  console.log((await mail(option('to'), SUBJECT(sample.name), emailHtml(sample))) ? `Sample sent to ${option('to')}.` : 'Not sent.');
 } else {
-  console.log('Commands: preview | prepare | export | send --limit N [--yes]   (see the top of this file)');
+  console.log('Commands: preview | prepare | export | send --limit N [--yes] | test --to address   (see the top of this file)');
 }
