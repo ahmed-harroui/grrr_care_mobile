@@ -19,7 +19,10 @@ import { installWideScreenFrame } from '@/lib/wide-screen';
 SplashScreen.preventAutoHideAsync();
 
 // Tablets and computers: the app as a centred column instead of a phone layout stretched across the window
-installWideScreenFrame({ light: '#DDE3EC', dark: '#060A12' });
+installWideScreenFrame({
+  light: { from: '#E3EDFF', to: '#C7DAFB', paw: 'rgba(37, 99, 235, .13)' },
+  dark: { from: '#0E1B3A', to: '#050A16', paw: 'rgba(96, 165, 250, .11)' },
+});
 
 // Reminders and home-screen widgets for the signed-in account.
 function CareBackground({ userId }: { userId: string }) {
