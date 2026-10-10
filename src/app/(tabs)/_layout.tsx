@@ -2,11 +2,15 @@ import { Tabs } from 'expo-router';
 import { useColorScheme, Text } from 'react-native';
 import { Colors } from '@/constants/theme';
 import { FloatingTabBar } from '@/components/FloatingTabBar';
+import { SideBar } from '@/components/SideBar';
+import { SIDEBAR_WIDTH, useDevice } from '@/lib/device';
 
 export default function TabsLayout() {
   const colorScheme = useColorScheme();
   const scheme = colorScheme === 'unspecified' ? 'light' : colorScheme;
   const colors = Colors[scheme];
+  // A laptop gets a sidebar and the pages beside it; phones and tablets keep the floating bar
+  const { isLaptop } = useDevice();
 
   return (
     <Tabs
@@ -17,8 +21,9 @@ export default function TabsLayout() {
         tabBarStyle: {
           display: 'none',
         },
+        sceneStyle: isLaptop ? { paddingLeft: SIDEBAR_WIDTH } : undefined,
       }}
-      tabBar={(props) => <FloatingTabBar {...props} />}
+      tabBar={(props) => (isLaptop ? <SideBar {...props} /> : <FloatingTabBar {...props} />)}
     >
       <Tabs.Screen
         name="index"

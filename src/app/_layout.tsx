@@ -14,15 +14,12 @@ import { grrrCareApi } from '@/lib/grrrr-care-api';
 import { Colors } from '@/constants/theme';
 import { useCareBackground } from '@/hooks/use-care-background';
 import { OpeningAnimation } from '@/components/OpeningAnimation';
-import { installWideScreenFrame } from '@/lib/wide-screen';
+import { installWideModals } from '@/lib/device';
 
 SplashScreen.preventAutoHideAsync();
 
-// Tablets and computers: the app as a centred column instead of a phone layout stretched across the window
-installWideScreenFrame({
-  light: { from: '#E3EDFF', to: '#C7DAFB', paw: 'rgba(37, 99, 235, .13)' },
-  dark: { from: '#0E1B3A', to: '#050A16', paw: 'rgba(96, 165, 250, .11)' },
-});
+// Tablets and computers: sheets open as a centred panel instead of a band across the window
+installWideModals();
 
 // Reminders and home-screen widgets for the signed-in account.
 function CareBackground({ userId }: { userId: string }) {

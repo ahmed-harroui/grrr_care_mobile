@@ -1,4 +1,5 @@
 import { ReactNode, useState } from 'react';
+import { useDevice } from '../lib/device';
 import {
   View,
   Text,
@@ -35,6 +36,7 @@ const orNull = (v: string) => (v.trim() ? v.trim() : null);
 
 export function PetForm({ ownerId, pet, onSaved, header, footer }: PetFormProps) {
   const { colors } = useTheme();
+  const { medium } = useDevice();
   const { t } = useLanguage();
 
   // A starter card's placeholder name ("Nouveau compagnon") is not the pet's real name
@@ -169,7 +171,7 @@ export function PetForm({ ownerId, pet, onSaved, header, footer }: PetFormProps)
 
   return (
     <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, medium]} keyboardShouldPersistTaps="handled">
         {header}
 
         <TouchableOpacity style={styles.photoWrap} onPress={pickPhoto} activeOpacity={0.8}>

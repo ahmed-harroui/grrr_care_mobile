@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { View, TouchableOpacity, StyleSheet, Animated, Image, LayoutChangeEvent, Keyboard, Platform } from 'react-native';
 import Svg, { Path } from 'react-native-svg';
 import { useTheme } from '../context/ThemeContext';
+import { useDevice } from '../lib/device';
 
 interface FloatingTabBarProps {
   state: any;
@@ -31,6 +32,7 @@ const ICON_BOX = 34;
 const ACTIVE_SCALE = 1.45;
 const ACTIVE_LIFT = BAR_H / 2 - (-BUMP_H + 4 + (ICON_BOX * ACTIVE_SCALE) / 2);
 const BAR_BOTTOM = 20;
+const WIDE_BAR = 520; // the bar's width on a tablet
 
 // Space screens must leave at the bottom so content isn't hidden behind the floating bar
 export const TAB_BAR_CLEARANCE = BAR_BOTTOM + SVG_H + 12;
@@ -61,6 +63,8 @@ function barPath(width: number, cx: number) {
 
 export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
   const { colors } = useTheme();
+  // On a tablet the bar keeps a phone's proportions, centred, instead of stretching from edge to edge
+  const { isWide, width: screenWidth } = useDevice();
   const [width, setWidth] = useState(0);
   const tabCount = state.routes.length;
 
@@ -115,7 +119,7 @@ export function FloatingTabBar({ state, navigation }: FloatingTabBarProps) {
   if (keyboardOpen) return null;
 
   return (
-    <View style={styles.container} pointerEvents="box-none" onLayout={onLayout}>
+    <View style={[styles.container, isWide && { left: (screenWidth - WIDE_BAR) / 2, right: undefined, width: WIDE_BAR }]} pointerEvents="box-none" onLayout={onLayout}>
       {d && (
         <Svg width={width} height={SVG_H} style={StyleSheet.absoluteFill} pointerEvents="none">
           <AnimatedPath d={d} fill={colors.card} stroke={colors.border} strokeWidth={STROKE} />

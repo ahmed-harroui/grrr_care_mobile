@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDevice } from '../lib/device';
 import {
   View,
   Text,
@@ -17,6 +18,7 @@ import { AppHeader } from '../components/AppHeader';
 export function PetsScreen() {
   const { selectedPetId, selectPet } = usePetSelector();
   const { colors } = useTheme();
+  const { page } = useDevice();
   const { t } = useLanguage();
   const [pets, setPets] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,7 +88,7 @@ export function PetsScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <AppHeader colors={colors} />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={page}>
       {/* Header */}
       <View style={styles.header}>
         <View>

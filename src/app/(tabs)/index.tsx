@@ -2,6 +2,7 @@ import { useCallback, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, ActivityIndicator, StyleSheet, SafeAreaView, Image } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useAuth } from '../../context/AuthContext';
+import { useDevice } from '../../lib/device';
 import { PetAvatar } from '../../components/PetAvatar';
 import * as WebBrowser from 'expo-web-browser';
 import { usePetSelector } from '../../context/PetSelectorContext';
@@ -28,6 +29,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { selectedPetId, selectPet } = usePetSelector();
   const { colors } = useTheme();
+  const { page, isLaptop } = useDevice();
   const { t, language } = useLanguage();
   const { user } = useAuth();
   const [pet, setPet] = useState<any>(null);
@@ -90,13 +92,16 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <AppHeader colors={colors} />
-      <ScrollView style={{ flex: 1, backgroundColor: colors.background }} showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1, backgroundColor: colors.background }} contentContainerStyle={page} showsVerticalScrollIndicator={false}>
       {/* Header */}
       <AnimatedCard style={[styles.header, { backgroundColor: colors.background }]}>
         <Text style={[styles.greeting, { color: colors.text }]}>{t('home.greeting')}</Text>
         <Text style={[styles.subtitle, { color: colors.textSecondary }]}>{t('home.subtitle')}</Text>
       </AnimatedCard>
 
+      {/* On a laptop: the pet and its health on the left, what to do next on the right */}
+      <View style={isLaptop ? styles.columns : undefined}>
+      <View style={isLaptop ? styles.column : undefined}>
       {/* Pet Selector */}
       <AnimatedCard style={styles.petSelectorSection} delay={100}>
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('home.whoAreCaring')}</Text>
@@ -150,6 +155,8 @@ export default function HomeScreen() {
         </View>
       )}
 
+      </View>
+      <View style={isLaptop ? styles.column : undefined}>
       {/* Quick Actions */}
       <AnimatedCard style={styles.actionsSection} delay={200}>
         <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>{t('home.quickActions')}</Text>
@@ -195,6 +202,8 @@ export default function HomeScreen() {
       <AnimatedCard style={styles.plusSection} delay={250}>
         <CareSubscription />
       </AnimatedCard>
+      </View>
+      </View>
 
       {/* Guides from the Studio and the community's threads */}
       <CommunityFeed colors={colors} />
@@ -232,6 +241,8 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+  columns: { flexDirection: 'row', alignItems: 'flex-start' },
+  column: { flex: 1, minWidth: 0 },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 20 },
   greeting: { fontSize: 28, fontWeight: '700', marginBottom: 4 },

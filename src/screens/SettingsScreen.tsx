@@ -1,4 +1,5 @@
 import { View, Text, ScrollView, TouchableOpacity, StyleSheet, SafeAreaView, Switch, Animated } from 'react-native';
+import { useDevice } from '../lib/device';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import { AppHeader } from '../components/AppHeader';
@@ -7,12 +8,13 @@ import { CareSubscription } from '../components/CareSubscription';
 
 export function SettingsScreen() {
   const { colors, isDark, toggleTheme, themeMode, setThemeMode } = useTheme();
+  const { medium } = useDevice();
   const { language, setLanguage, t } = useLanguage();
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <AppHeader colors={colors} />
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={medium}>
         <ProfileSection />
 
         {/* Care+ subscription (payment not open yet) */}

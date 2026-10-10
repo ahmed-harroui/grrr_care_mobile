@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDevice } from '../lib/device';
 import {
   View,
   Text,
@@ -20,6 +21,7 @@ import { AppHeader } from '../components/AppHeader';
 export function HealthScreen() {
   const { selectedPetId } = usePetSelector();
   const { colors } = useTheme();
+  const { medium } = useDevice();
   const [pet, setPet] = useState<any>(null);
   const [vaccinations, setVaccinations] = useState<any[]>([]);
   const [medications, setMedications] = useState<any[]>([]);
@@ -210,7 +212,7 @@ export function HealthScreen() {
           <ActivityIndicator color={colors.primary} size="large" />
         </View>
       ) : (
-        <ScrollView style={styles.content} contentContainerStyle={styles.contentPadding} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.content} contentContainerStyle={[styles.contentPadding, medium]} showsVerticalScrollIndicator={false}>
           {data.length === 0 ? (
             <View style={styles.emptyState}>
               <Text style={styles.emptyEmoji}>{config.emoji}</Text>

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useDevice } from '../lib/device';
 import { ActivityIndicator, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import Animated, {
@@ -45,6 +46,7 @@ function passwordStrength(password: string) {
 
 export default function LoginScreen() {
   const { colors } = useTheme();
+  const { narrow } = useDevice();
   const { login, register, loginWithGoogle, demoMode } = useAuth();
   const { language } = useLanguage();
   const tx = (en: string, fr: string) => (language === 'fr' ? fr : en);
@@ -200,7 +202,7 @@ export default function LoginScreen() {
       <View style={[styles.blob, styles.blobA, { backgroundColor: colors.primary }]} />
       <View style={[styles.blob, styles.blobB, { backgroundColor: '#FFB35C' }]} />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+      <ScrollView contentContainerStyle={[styles.content, narrow]} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {/* Top bar: back + progress */}
         <View style={styles.topBar}>
           {flow !== 'welcome' ? (

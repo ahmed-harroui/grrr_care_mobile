@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useDevice } from '../../lib/device';
 import {
   View,
   Text,
@@ -68,6 +69,7 @@ const MODES: { key: ChatStyle; emoji: string; label: string; intro: string; plac
 export default function ChatScreen() {
   const { selectedPetId } = usePetSelector();
   const { colors } = useTheme();
+  const { medium, isLaptop } = useDevice();
   const { t, language } = useLanguage();
   const [pet, setPet] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -212,7 +214,7 @@ export default function ChatScreen() {
         <ScrollView
           ref={scrollRef}
           style={styles.flex}
-          contentContainerStyle={styles.messages}
+          contentContainerStyle={[styles.messages, medium]}
           keyboardShouldPersistTaps="handled"
           onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: true })}
         >
@@ -345,7 +347,7 @@ export default function ChatScreen() {
         </ScrollView>
 
         {/* Input */}
-        <View style={[styles.inputArea, { paddingBottom: keyboardOpen ? 10 : TAB_BAR_CLEARANCE }]}>
+        <View style={[styles.inputArea, medium, { paddingBottom: keyboardOpen ? 10 : isLaptop ? 18 : TAB_BAR_CLEARANCE }]}>
           <View style={[styles.inputPill, { backgroundColor: colors.card, borderColor: colors.border }]}>
             <TextInput
               style={[styles.input, { color: colors.text }]}

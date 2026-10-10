@@ -4,6 +4,7 @@ import * as Location from 'expo-location';
 import { useFocusEffect } from 'expo-router';
 import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
+import { useDevice } from '../lib/device';
 import { grrrCareApi } from '../lib/grrrr-care-api';
 import { PartnersMapView } from './PartnersMapView';
 import { AppHeader } from '../components/AppHeader';
@@ -31,6 +32,9 @@ interface Partner {
 
 export function FindVetScreen() {
   const { colors } = useTheme();
+  const { page, columns } = useDevice();
+  // Two cards per row on a phone, three on a tablet, four on a laptop (the grid's gap is 12)
+  const cardWidth = { width: `${100 / columns - 2}%` as const };
   const { language } = useLanguage();
   const tx = (en: string, fr: string) => (language === 'fr' ? fr : en);
   const [featured, setFeatured] = useState<Partner | null>(null);
@@ -184,6 +188,7 @@ export function FindVetScreen() {
       <AppHeader colors={colors} />
       <ScrollView
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={page}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />}
       >
       {/* Header */}
@@ -282,7 +287,7 @@ export function FindVetScreen() {
             {partners.map(partner => (
               <TouchableOpacity
                 key={partner.id}
-                style={[styles.partnerCard, { backgroundColor: colors.card, borderColor: colors.border }]}
+                style={[styles.partnerCard, cardWidth, { backgroundColor: colors.card, borderColor: colors.border }]}
                 onPress={() => handleOpenMap(partner.name, partner.latitude, partner.longitude, partner.address)}
               >
                 <View style={[styles.partnerLogo, { backgroundColor: colors.backgroundElement }]}>
