@@ -67,10 +67,12 @@ export async function buildCareSnapshot(petId: string, language: Language, now =
   const tx = (en: string, fr: string) => (language === 'fr' ? fr : en);
   const { data: pet } = await supabase.from('pets').select('*').eq('id', petId).maybeSingle();
   if (!pet) return null;
-  const [vaccinations, visits, medications, score] = await Promise.all([
+  const [vaccinations, visits, medications, plan, score] = await Promise.all([
     supabase.from('vaccinations').select('vaccine, date, next_due').eq('pet_id', petId).then((r) => r.data ?? []),
     supabase.from('vet_visits').select('date, vet_name, reason').eq('pet_id', petId).gt('date', now.toISOString()).order('date', { ascending: true }).limit(3).then((r) => r.data ?? []),
-    supabase.from('medications').select('name, dosage, frequency, start_date, end_date').eq('pet_id', petId).lte('start_date', now.toISOString()).then((r) => r.data ?? []),
+    supabase.from('medications').select('name, dosage, frequency, start_date, end_date, every_days').eq('pet_id', petId).lte('start_date', now.toISOString()).then((r) => r.data ?? []),
+    // The care plan (deworming, flea care, check-up, vaccine doses not yet in the record): what is still to do
+    supabase.from('care_plan').select('kind, title, title_en, due_date').eq('pet_id', petId).is('done_at', null).order('due_date', { ascending: true }).limit(5).then((r) => (r.data ?? []) as { kind: string; title: string; title_en: string | null; due_date: string }[]),
     getPetHealthScore(pet).catch(() => null),
   ]);
 
@@ -82,7 +84,9 @@ export async function buildCareSnapshot(petId: string, language: Language, now =
     if (!current || v.date > current.date) latest.set(key, v);
   }
   const dueVaccines = [...latest.values()].filter((v) => v.next_due).sort((a, b) => a.next_due!.localeCompare(b.next_due!));
-  const activeMeds = (medications as { name: string; dosage: string | null; frequency: string | null; end_date: string | null }[]).filter((m) => !m.end_date || daysFrom(m.end_date, now) >= 0);
+  // Treatments to give today (a weekly or monthly one only shows on its day)
+  const activeMeds = (medications as { name: string; dosage: string | null; frequency: string | null; start_date: string; end_date: string | null; every_days: number | null }[])
+    .filter((m) => (!m.end_date || daysFrom(m.end_date, now) >= 0) && -daysFrom(m.start_date, now) % (m.every_days || 1) === 0);
 
   const when = (iso: string) => {
     const days = daysFrom(iso, now);
@@ -101,12 +105,19 @@ export async function buildCareSnapshot(petId: string, language: Language, now =
     if (daysFrom(v.next_due!, now) <= 30) items.push({ icon: daysFrom(v.next_due!, now) < 0 ? '⚠️' : '💉', text: `${v.vaccine} · ${when(v.next_due!)}`, urgent: daysFrom(v.next_due!, now) <= 1 });
   }
 
+  const planIcon: Record<string, string> = { vaccine: '💉', deworming: '🪱', parasite: '🛡️', checkup: '🩺' };
+  const planTitle = (p: { title: string; title_en: string | null }) => (language === 'fr' ? p.title : p.title_en ?? p.title);
+  for (const p of plan) {
+    if (daysFrom(p.due_date, now) <= 30) items.push({ icon: daysFrom(p.due_date, now) < 0 ? '⚠️' : planIcon[p.kind] ?? '📌', text: `${planTitle(p)} · ${when(p.due_date)}`, urgent: daysFrom(p.due_date, now) <= 1 });
+  }
+
   const nextVisit = (visits as { date: string }[])[0];
   const nextVaccine = dueVaccines.find((v) => daysFrom(v.next_due!, now) >= -60);
   const next = nextVisit && (!nextVaccine || nextVisit.date < nextVaccine.next_due!)
     ? `🩺 ${tx('Vet', 'Vétérinaire')} ${when(nextVisit.date)} · ${hhmm(nextVisit.date)}`
-    : nextVaccine ? `💉 ${nextVaccine.vaccine} ${when(nextVaccine.next_due!)}`
-    : tx('📅 Nothing planned: add the next vaccine', '📅 Rien de prévu : ajoute le prochain vaccin');
+    : nextVaccine && (!plan[0] || nextVaccine.next_due!.slice(0, 10) <= plan[0].due_date) ? `💉 ${nextVaccine.vaccine} ${when(nextVaccine.next_due!)}`
+    : plan[0] ? `${planIcon[plan[0].kind] ?? '📌'} ${planTitle(plan[0])} ${when(plan[0].due_date)}`
+    : tx('🪄 Nothing planned: use the wand in Health', '🪄 Rien de prévu : utilise la baguette dans Santé');
 
   const ok = score?.status === 'ok' ? score : null;
   const health = ok

@@ -68,6 +68,7 @@ function SignedInApp({ userId }: { userId: string }) {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="pet/[id]" />
+        <Stack.Screen name="game" />
       </Stack>
     </PetSelectorProvider>
   );

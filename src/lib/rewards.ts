@@ -33,6 +33,8 @@ export interface DailyStreak {
   careAiUntil: string | null;
   /** The AI month was already won: day 7 is now a chest of treats */
   aiMonthUsed?: boolean;
+  /** The game "help your pets" was finished this week: day 7 can be collected (Care migration 021) */
+  gamePlayed?: boolean;
 }
 
 export async function getDailyStreak(): Promise<DailyStreak | null> {
@@ -44,8 +46,8 @@ export async function getDailyStreak(): Promise<DailyStreak | null> {
   return data as DailyStreak | null;
 }
 
-export async function claimDailyReward(petId?: string | null): Promise<{ reward: (DailyReward & { day: number }) | null; error: 'ALREADY_CLAIMED' | 'UNKNOWN' | null }> {
+export async function claimDailyReward(petId?: string | null): Promise<{ reward: (DailyReward & { day: number }) | null; error: 'ALREADY_CLAIMED' | 'GAME_REQUIRED' | 'UNKNOWN' | null }> {
   const { data, error } = await supabase.rpc('claim_daily_reward', { p_app: 'care', p_pet_id: petId ?? null });
-  if (error) return { reward: null, error: error.message.includes('ALREADY_CLAIMED') ? 'ALREADY_CLAIMED' : 'UNKNOWN' };
+  if (error) return { reward: null, error: error.message.includes('ALREADY_CLAIMED') ? 'ALREADY_CLAIMED' : error.message.includes('GAME_REQUIRED') ? 'GAME_REQUIRED' : 'UNKNOWN' };
   return { reward: data, error: null };
 }

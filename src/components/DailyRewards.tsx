@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Animated, Image, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
 import { usePetSelector } from '@/context/PetSelectorContext';
@@ -9,7 +9,7 @@ import { onOpenDailyGifts } from '@/lib/daily-gifts';
 
 // The daily gifts, as in the GRRRR app (same streak): a chain button in the header opens the
 // week's chain, in GRRRR Adopt's look (white glass, warm orange). Day 7: a month of the AI
-// assistant without the daily limit.
+// assistant without the daily limit, given once the game "help your pets" was finished that week.
 const ORANGE = '#FFB35C';
 const ORANGE_DARK = '#C97A1E';
 const INK = '#3A2A18';
@@ -82,13 +82,22 @@ export function DailyRewards() {
     const result = await claimDailyReward(selectedPetId);
     setBusy(false);
     if (result.reward) setWon(result.reward);
-    else if (result.error !== 'ALREADY_CLAIMED') setFailed(true);
+    else if (result.error !== 'ALREADY_CLAIMED' && result.error !== 'GAME_REQUIRED') setFailed(true);
     load();
+  };
+
+  // The sheet is a modal: closed before the game's screen opens
+  const play = () => {
+    setOpen(false);
+    router.push('/game' as never);
   };
 
   const day = streak?.day ?? 1;
   const week = weekFor(streak?.aiMonthUsed);
   const done = streak?.done ?? 0;
+  const gamePlayed = Boolean(streak?.gamePlayed);
+  // Day 7 waits for the week's game
+  const needsGame = Boolean(streak && !streak.claimedToday && day === 7 && !gamePlayed);
 
   return (
     <>
@@ -133,6 +142,16 @@ export function DailyRewards() {
                 })}
               </View>
 
+              {/* The week's game: to finish before day 7 */}
+              <Pressable style={[styles.game, gamePlayed && styles.gameDone]} onPress={play}>
+                <Text style={styles.gameIcon}>{gamePlayed ? '✅' : '🎮'}</Text>
+                <View style={styles.gameBody}>
+                  <Text style={styles.gameTitle}>{gamePlayed ? tx("This week's game is done", 'Jeu de la semaine fait') : tx('Help your pets', 'Aide tes compagnons')}</Text>
+                  <Text style={styles.gameText}>{gamePlayed ? tx('Day 7 is unlocked. Play again whenever you like.', 'Le jour 7 est débloqué. Rejoue quand tu veux.') : tx("Finish a 90-second game this week to unlock day 7's gift.", 'Finis une partie de 90 secondes cette semaine pour débloquer le cadeau du jour 7.')}</Text>
+                </View>
+                <Text style={styles.gameArrow}>→</Text>
+              </Pressable>
+
               {won ? (
                 <View style={styles.wonCard}>
                   <View style={styles.wonIcon}><RewardIcon reward={won} size={34} /></View>
@@ -152,6 +171,10 @@ export function DailyRewards() {
                   <Text style={styles.wonTitle}>{tx("Today's gift collected ✓", 'Cadeau du jour récupéré ✓')}</Text>
                   <Text style={styles.wonText}>{day >= 7 ? tx('Week complete! A new chain starts tomorrow.', 'Semaine complète ! Demain, une nouvelle chaîne commence.') : tx(`Tomorrow: ${rewardLabel(week[day], tx)}. Don't break the chain!`, `Demain : ${rewardLabel(week[day], tx)}. Ne casse pas la chaîne !`)}</Text>
                 </View>
+              ) : needsGame ? (
+                <Pressable style={styles.claim} onPress={play}>
+                  <Text style={styles.claimText}>{tx('Play to unlock day 7', 'Jouer pour débloquer le jour 7')}</Text>
+                </Pressable>
               ) : (
                 <Pressable style={[styles.claim, busy && styles.claimBusy]} onPress={claim} disabled={busy || !streak}>
                   <Text style={styles.claimText}>{busy ? tx('Opening…', 'Ouverture…') : tx(`Collect day ${day}'s gift`, `Récupérer le cadeau du jour ${day}`)}</Text>
@@ -204,6 +227,13 @@ const styles = StyleSheet.create({
   linkDay: { fontWeight: '800', fontSize: 11, color: INK, marginTop: 5 },
   linkDayToday: { color: ORANGE_DARK },
   linkLabel: { fontSize: 10, color: INK_SOFT, textAlign: 'center', paddingHorizontal: 2 },
+  game: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 14, padding: 12, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.85)', borderWidth: 1.5, borderColor: ORANGE },
+  gameDone: { borderColor: GLASS_BORDER },
+  gameIcon: { fontSize: 26 },
+  gameBody: { flex: 1 },
+  gameTitle: { fontWeight: '800', fontSize: 14, color: INK },
+  gameText: { fontSize: 12, lineHeight: 16, color: INK_SOFT, marginTop: 2 },
+  gameArrow: { fontWeight: '800', fontSize: 18, color: ORANGE_DARK },
   claim: { marginTop: 18, alignItems: 'center', paddingVertical: 15, borderRadius: 999, backgroundColor: ORANGE, borderWidth: 1.5, borderColor: '#FFFFFF', shadowColor: ORANGE_DARK, shadowOpacity: 0.35, shadowRadius: 12, shadowOffset: { width: 0, height: 6 }, elevation: 5 },
   claimBusy: { opacity: 0.6 },
   claimText: { fontWeight: '800', fontSize: 15, color: '#FFFFFF' },

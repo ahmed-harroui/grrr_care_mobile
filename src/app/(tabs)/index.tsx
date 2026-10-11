@@ -198,6 +198,18 @@ export default function HomeScreen() {
         </View>
       </AnimatedCard>
 
+      {/* The game: a finished game unlocks day 7 of the weekly gifts */}
+      <AnimatedCard style={styles.plusSection} delay={225}>
+        <TouchableOpacity style={[styles.gameCard, { backgroundColor: '#5FBCFF' }]} onPress={() => router.push('/game' as never)} activeOpacity={0.85}>
+          <Text style={styles.gameEmoji}>🌍</Text>
+          <View style={styles.askText}>
+            <Text style={styles.gameTitle}>{language === 'fr' ? 'Aide tes compagnons' : 'Help your pets'}</Text>
+            <Text style={styles.gameDesc}>{language === 'fr' ? 'Le jeu de la semaine : 90 secondes pour débloquer le cadeau du jour 7' : "This week's game: 90 seconds to unlock day 7's gift"}</Text>
+          </View>
+          <Text style={styles.gameArrow}>→</Text>
+        </TouchableOpacity>
+      </AnimatedCard>
+
       {/* Care+ (payment not open yet: the weekly mission's free month) */}
       <AnimatedCard style={styles.plusSection} delay={250}>
         <CareSubscription />
@@ -277,6 +289,11 @@ const styles = StyleSheet.create({
   tileExternal: { position: 'absolute', top: 8, right: 10, fontSize: 12, fontWeight: '700' },
 
   plusSection: { paddingHorizontal: 20, marginBottom: 28 },
+  gameCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 16, borderRadius: 22 },
+  gameEmoji: { fontSize: 34 },
+  gameTitle: { fontSize: 17, fontWeight: '800', color: '#0F1B3D', marginBottom: 2 },
+  gameDesc: { fontSize: 13, fontWeight: '600', color: 'rgba(15,27,61,0.8)' },
+  gameArrow: { fontSize: 22, fontWeight: '700', color: '#0F1B3D' },
 
   activitySection: { paddingHorizontal: 20, marginBottom: 20 },
   activityHeader: { marginBottom: 12 },

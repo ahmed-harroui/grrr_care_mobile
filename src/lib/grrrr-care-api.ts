@@ -1,5 +1,6 @@
 import { supabase } from './supabase';
 import { DEMO_PETS, DEMO_VACCINATIONS, DEMO_MEDICATIONS, DEMO_VET_VISITS } from './demo-data';
+import { addDays, isoDay, type NewPlanItem, type PlanItem } from './care-plan';
 
 const API_BASE = 'http://192.168.56.1:3000/api';
 
@@ -106,6 +107,18 @@ export interface PetDocument extends PetDocumentFields {
 export const isAwaitingRead = (doc: PetDocument) => !!doc.file_path && doc.ai_summary_path !== doc.file_path;
 
 const demoDocuments: PetDocument[] = [];
+
+// The demo keeps what is added for the time of the visit (nothing is saved)
+const demoLists: Record<string, Record<string, any[]>> = { vaccinations: DEMO_VACCINATIONS, medications: DEMO_MEDICATIONS, vet_visits: DEMO_VET_VISITS, care_plan: {} };
+const demoList = (table: string, petId: string) => (demoLists[table][petId] ??= []);
+const demoAdd = (table: string, petId: string, row: Record<string, unknown>) => {
+  const saved = { id: `demo-${table}-${Date.now()}-${Math.round(Math.random() * 1e6)}`, pet_id: petId, ...row };
+  demoLists[table][petId] = [saved, ...demoList(table, petId)];
+  return saved;
+};
+const demoRemove = (table: string, id: string) => {
+  for (const petId of Object.keys(demoLists[table])) demoLists[table][petId] = demoLists[table][petId].filter(row => row.id !== id);
+};
 
 let demoMode = false;
 
@@ -303,9 +316,7 @@ export const grrrCareApi = {
 
   // Vaccinations
   async getVaccinations(petId: string) {
-    if (demoMode) {
-      return DEMO_VACCINATIONS[petId as keyof typeof DEMO_VACCINATIONS] || [];
-    }
+    if (demoMode) return demoList('vaccinations', petId);
 
     const { data, error } = await supabase
       .from('vaccinations')
@@ -323,16 +334,19 @@ export const grrrCareApi = {
   async addVaccination(petId: string, vaccine: {
     name: string;
     date?: string;
-    nextDue?: string;
+    nextDue?: string | null;
+    vetName?: string;
   }) {
+    const row = {
+      vaccine: vaccine.name,
+      date: vaccine.date || new Date().toISOString(),
+      next_due: vaccine.nextDue || null,
+      vet_name: vaccine.vetName || null,
+    };
+    if (demoMode) return demoAdd('vaccinations', petId, row);
     const { data, error } = await supabase
       .from('vaccinations')
-      .insert([{
-        pet_id: petId,
-        vaccine: vaccine.name,
-        date: vaccine.date || new Date().toISOString(),
-        next_due: vaccine.nextDue || null,
-      }])
+      .insert([{ pet_id: petId, ...row }])
       .select()
       .single();
     if (error) {
@@ -343,10 +357,7 @@ export const grrrCareApi = {
   },
 
   async deleteVaccination(vaccinationId: string) {
-    if (demoMode) {
-      // In demo mode, we can't really delete, but app will reload fresh data
-      return;
-    }
+    if (demoMode) return demoRemove('vaccinations', vaccinationId);
     const { error } = await supabase
       .from('vaccinations')
       .delete()
@@ -359,9 +370,7 @@ export const grrrCareApi = {
 
   // Medications
   async getMedications(petId: string) {
-    if (demoMode) {
-      return DEMO_MEDICATIONS[petId as keyof typeof DEMO_MEDICATIONS] || [];
-    }
+    if (demoMode) return demoList('medications', petId);
 
     const { data, error } = await supabase
       .from('medications')
@@ -381,20 +390,24 @@ export const grrrCareApi = {
     dosage?: string;
     frequency?: string;
     startDate?: string;
-    endDate?: string;
+    endDate?: string | null;
     notes?: string;
+    /** Given every… days (1: every day), so that reminders only come on those days */
+    everyDays?: number;
   }) {
+    const row = {
+      name: med.name,
+      dosage: med.dosage || null,
+      frequency: med.frequency || null,
+      start_date: med.startDate || new Date().toISOString(),
+      end_date: med.endDate || null,
+      notes: med.notes || null,
+      every_days: med.everyDays || 1,
+    };
+    if (demoMode) return demoAdd('medications', petId, row);
     const { data, error } = await supabase
       .from('medications')
-      .insert([{
-        pet_id: petId,
-        name: med.name,
-        dosage: med.dosage || 'As prescribed',
-        frequency: med.frequency || null,
-        start_date: med.startDate || new Date().toISOString(),
-        end_date: med.endDate || null,
-        notes: med.notes || null,
-      }])
+      .insert([{ pet_id: petId, ...row }])
       .select()
       .single();
     if (error) {
@@ -405,9 +418,7 @@ export const grrrCareApi = {
   },
 
   async deleteMedication(medicationId: string) {
-    if (demoMode) {
-      return;
-    }
+    if (demoMode) return demoRemove('medications', medicationId);
     const { error } = await supabase
       .from('medications')
       .delete()
@@ -420,9 +431,7 @@ export const grrrCareApi = {
 
   // Vet Visits
   async getVetVisits(petId: string) {
-    if (demoMode) {
-      return DEMO_VET_VISITS[petId as keyof typeof DEMO_VET_VISITS] || [];
-    }
+    if (demoMode) return demoList('vet_visits', petId);
 
     const { data, error } = await supabase
       .from('vet_visits')
@@ -444,16 +453,17 @@ export const grrrCareApi = {
     diagnosis?: string;
     notes?: string;
   }) {
+    const row = {
+      date: visit.date || new Date().toISOString(),
+      vet_name: visit.vetName || null,
+      reason: visit.reason || null,
+      diagnosis: visit.diagnosis || null,
+      notes: visit.notes || null,
+    };
+    if (demoMode) return demoAdd('vet_visits', petId, row);
     const { data, error } = await supabase
       .from('vet_visits')
-      .insert([{
-        pet_id: petId,
-        date: visit.date || new Date().toISOString(),
-        vet_name: visit.vetName || null,
-        reason: visit.reason || null,
-        diagnosis: visit.diagnosis || null,
-        notes: visit.notes || null,
-      }])
+      .insert([{ pet_id: petId, ...row }])
       .select()
       .single();
     if (error) {
@@ -464,9 +474,7 @@ export const grrrCareApi = {
   },
 
   async deleteVetVisit(visitId: string) {
-    if (demoMode) {
-      return;
-    }
+    if (demoMode) return demoRemove('vet_visits', visitId);
     const { error } = await supabase
       .from('vet_visits')
       .delete()
@@ -475,6 +483,83 @@ export const grrrCareApi = {
       console.error('Delete vet visit error:', error);
       throw error;
     }
+  },
+
+  // Care plan: what is coming that is not yet in the record (lib/care-plan)
+  async getCarePlan(petId: string): Promise<PlanItem[]> {
+    if (demoMode) return demoList('care_plan', petId);
+    const { data, error } = await supabase.from('care_plan').select('*').eq('pet_id', petId).order('due_date', { ascending: true });
+    if (error) {
+      console.warn('Care plan fetch error:', error.message);
+      return [];
+    }
+    return data || [];
+  },
+
+  /** The wand's dates replace the ones it proposed before that are still to do; what was added by hand stays. */
+  async replaceGeneratedPlan(petId: string, items: NewPlanItem[]) {
+    if (demoMode) {
+      demoLists.care_plan[petId] = demoList('care_plan', petId).filter(item => item.source !== 'wand' || item.done_at);
+      items.forEach(item => demoAdd('care_plan', petId, { ...item, done_at: null }));
+      return;
+    }
+    const { error: clearError } = await supabase.from('care_plan').delete().eq('pet_id', petId).eq('source', 'wand').is('done_at', null);
+    if (clearError) throw clearError;
+    if (items.length === 0) return;
+    const { error } = await supabase.from('care_plan').upsert(items.map(item => ({ pet_id: petId, ...item })), { onConflict: 'pet_id,plan_key', ignoreDuplicates: true });
+    if (error) throw error;
+  },
+
+  async addPlanItem(petId: string, item: NewPlanItem) {
+    if (demoMode) return demoAdd('care_plan', petId, { ...item, done_at: null });
+    const { data, error } = await supabase.from('care_plan').insert([{ pet_id: petId, ...item }]).select().single();
+    if (error) throw error;
+    return data;
+  },
+
+  async deletePlanItem(itemId: string) {
+    if (demoMode) return demoRemove('care_plan', itemId);
+    const { error } = await supabase.from('care_plan').delete().eq('id', itemId);
+    if (error) throw error;
+  },
+
+  /**
+   * Ticked as done today. The follow-up is automatic: a vaccine goes in the record with its next
+   * dose, a visit too, and what comes back (deworming, flea care, check-up) is planned again.
+   */
+  async completePlanItem(item: PlanItem, nextVaccineDue: string | null) {
+    const now = new Date();
+    if (demoMode) demoList('care_plan', item.pet_id).forEach(row => { if (row.id === item.id) row.done_at = now.toISOString(); });
+    else {
+      const { error } = await supabase.from('care_plan').update({ done_at: now.toISOString() }).eq('id', item.id);
+      if (error) throw error;
+    }
+    if (item.kind === 'vaccine') {
+      // "Vaccin X : dose 2" is kept in the record as "Vaccin X"
+      await this.addVaccination(item.pet_id, { name: item.title.replace(/ : [^:]*$/, ''), date: now.toISOString(), nextDue: nextVaccineDue });
+      return;
+    }
+    if (item.kind === 'checkup') await this.addVetVisit(item.pet_id, { date: now.toISOString(), reason: item.title });
+    if (item.repeat_days) {
+      const due = isoDay(addDays(now, item.repeat_days));
+      const next: NewPlanItem = { kind: item.kind, title: item.title, title_en: item.title_en, due_date: due, repeat_days: item.repeat_days, source: item.source, plan_key: item.plan_key ? item.plan_key.replace(/[^:]*$/, due) : null };
+      if (demoMode) demoAdd('care_plan', item.pet_id, { ...next, done_at: null });
+      else {
+        const { error } = await supabase.from('care_plan').upsert([{ pet_id: item.pet_id, ...next }], { onConflict: 'pet_id,plan_key', ignoreDuplicates: true });
+        if (error) throw error;
+      }
+    }
+  },
+
+  /** A finished game of "help your pets": it unlocks day 7 of the weekly gifts. */
+  async recordGame(result: { solved: number; missed: number; kibble: number; health: number }): Promise<boolean> {
+    if (demoMode) return false;
+    const { data, error } = await supabase.rpc('record_care_game', { p_solved: result.solved, p_missed: result.missed, p_kibble: result.kibble, p_health: Math.round(result.health) });
+    if (error) {
+      console.warn('Game not recorded', error.message);
+      return false;
+    }
+    return !!data?.counted;
   },
 
   // Knowledge Base Search
@@ -775,7 +860,8 @@ export const grrrCareApi = {
         status: 'healthy',
         vaccinations: vaccinations.length,
         medications: medications.length,
-        lastVetVisit: vetVisits[0]?.date || null,
+        // Visits also hold the appointments to come: the last one that took place
+        lastVetVisit: vetVisits.find((visit: any) => new Date(visit.date).getTime() <= Date.now())?.date || null,
       };
     } catch (error) {
       console.warn('Health summary error:', error);
