@@ -134,10 +134,13 @@ export function buildMapHtml({ partners, userLocation }: PartnersMapViewProps) {
           }).addTo(map).bindPopup(popup);
         });
 
-        // Frames every partner, and the owner when their position is known
+        // With the owner's position: their neighbourhood, the places further out a drag away.
+        // Without it: every place shown (one kind of place can be few, far apart).
         const points = data.partners.map(p => [p.lat, p.lon]);
-        if (data.user) points.push([data.user.lat, data.user.lon]);
-        if (points.length > 1) map.fitBounds(points, { padding: [50, 50], maxZoom: 16 });
+        if (data.user) map.setView([data.user.lat, data.user.lon], 13);
+        // Many places around the home city: its streets rather than a heap of pins seen from afar
+        else if (points.length > 25) map.setView([data.center.lat, data.center.lon], 12);
+        else if (points.length > 1) map.fitBounds(points, { padding: [40, 40], maxZoom: 15 });
         else if (points.length === 1) map.setView(points[0], 15);
       </script>
     </body>

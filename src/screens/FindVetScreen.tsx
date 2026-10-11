@@ -30,9 +30,22 @@ interface Partner {
   discount_percent?: number | null;
 }
 
+// Where the map opens while the owner's position is unknown (the same city as the GRRRR app's map)
+const HOME_CITY = { latitude: 44.8404, longitude: -0.5805 };
+
+// The kinds of places the map holds: [key, emoji, English, French]
+const CATEGORIES: [string, string, string, string][] = [
+  ['all', '🐾', 'All', 'Tout'],
+  ['clinic', '🏥', 'Vets', 'Vétérinaires'],
+  ['supplies', '🛒', 'Pet shops', 'Animaleries'],
+  ['grooming', '✨', 'Groomers', 'Toiletteurs'],
+];
+
 export function FindVetScreen() {
   const { colors } = useTheme();
-  const { page, columns } = useDevice();
+  const { page, columns, isWide } = useDevice();
+  // The kind of place shown on the map and in the list
+  const [category, setCategory] = useState<string>('all');
   // Two cards per row on a phone, three on a tablet, four on a laptop (the grid's gap is 12)
   const cardWidth = { width: `${100 / columns - 2}%` as const };
   const { language } = useLanguage();
@@ -47,14 +60,15 @@ export function FindVetScreen() {
   const loadPartners = async (location: typeof userLocation, { quiet = false } = {}) => {
     try {
       if (!quiet) setLoading(true);
-      // With a position the server returns the places around it, nearest first, with their distance
+      // The places around the owner, nearest first; around the home city while the position is unknown,
+      // so the map always has something to show (distances are only given from a real position)
       const [featuredData, nearby] = await Promise.all([
         grrrCareApi.getFeaturedPartner(),
-        grrrCareApi.getAllPartners(location),
+        grrrCareApi.getAllPartners(location ?? HOME_CITY),
       ]);
 
       setFeatured(featuredData);
-      setPartners(nearby.map((p: any) => ({ ...p, distance: p.distance_km == null ? undefined : Math.round(p.distance_km * 10) / 10 })));
+      setPartners(nearby.map((p: any) => ({ ...p, distance: !location || p.distance_km == null ? undefined : Math.round(p.distance_km * 10) / 10 })));
     } catch (error) {
       console.error('Error loading partners:', error);
     } finally {
@@ -162,7 +176,32 @@ export function FindVetScreen() {
     );
   }
 
-  // Map view
+  // One kind of place, or all of them: the map and the list show the same ones
+  const shown = category === 'all' ? partners : partners.filter(p => p.category === category);
+  const categoryChips = (
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+      {CATEGORIES.map(([key, emoji, en, fr]) => {
+        const active = category === key;
+        const count = key === 'all' ? partners.length : partners.filter(p => p.category === key).length;
+        return (
+          <TouchableOpacity
+            key={key}
+            onPress={() => setCategory(key)}
+            activeOpacity={0.8}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            style={[styles.chip, { backgroundColor: active ? colors.primary : colors.card, borderColor: active ? colors.primary : colors.border }]}
+          >
+            <Text style={[styles.chipText, { color: active ? '#FFFFFF' : colors.text }]}>
+              {emoji} {tx(en, fr)} <Text style={{ fontWeight: '500', opacity: 0.75 }}>{count}</Text>
+            </Text>
+          </TouchableOpacity>
+        );
+      })}
+    </ScrollView>
+  );
+
+  // The map opened in full
   if (viewMode === 'map') {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
@@ -172,13 +211,11 @@ export function FindVetScreen() {
             style={[styles.toggleBtn, { backgroundColor: colors.primary }]}
             onPress={() => setViewMode('list')}
           >
-            <Text style={styles.toggleBtnText}>📋 List</Text>
+            <Text style={styles.toggleBtnText}>✕ {tx('Close', 'Fermer')}</Text>
           </TouchableOpacity>
-          <Text style={[styles.mapTitle, { color: colors.text }]}>
-            {partners.filter(p => p.latitude && p.longitude).length} {tx('places', 'établissements')}
-          </Text>
+          <View style={{ flex: 1 }}>{categoryChips}</View>
         </View>
-        <PartnersMapView partners={partners} userLocation={userLocation || undefined} />
+        <PartnersMapView partners={shown} userLocation={userLocation || undefined} />
       </SafeAreaView>
     );
   }
@@ -200,12 +237,21 @@ export function FindVetScreen() {
               {userLocation?.city ? `📍 ${userLocation.city}` : tx('🐾 Vets, pet shops and groomers', '🐾 Vétérinaires, animaleries et toiletteurs')}
             </Text>
           </View>
+        </View>
+      </View>
+
+      {/* The map, right in the page, for the kind of place chosen */}
+      <View style={styles.mapSection}>
+        {categoryChips}
+        <View style={[styles.mapCard, { height: isWide ? 400 : 260, borderColor: colors.border, backgroundColor: colors.card }]}>
+          <PartnersMapView partners={shown} userLocation={userLocation || undefined} />
           <TouchableOpacity
-            style={[styles.mapBtn, { backgroundColor: colors.primary }]}
+            style={[styles.openMap, { backgroundColor: colors.primary }]}
             onPress={() => setViewMode('map')}
-            activeOpacity={0.7}
+            activeOpacity={0.85}
+            accessibilityRole="button"
           >
-            <Text style={styles.mapBtnText}>🗺️</Text>
+            <Text style={styles.openMapText}>⛶ {tx('Open the map', 'Ouvrir la carte')}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -274,17 +320,17 @@ export function FindVetScreen() {
       )}
 
       {/* All Partners */}
-      {partners.length > 0 && (
+      {shown.length > 0 && (
         <View style={styles.partnersSection}>
           <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>
-            {userLocation ? tx('NEAR YOU', 'PRÈS DE CHEZ TOI') : tx('OUR PARTNERS', 'NOS PARTENAIRES')}
+            {userLocation ? tx('NEAR YOU', 'PRÈS DE CHEZ TOI') : tx('AROUND BORDEAUX', 'AUTOUR DE BORDEAUX')}
           </Text>
           <Text style={[styles.partnersSubtitle, { color: colors.textSecondary }]}>
-            {userLocation ? tx('Nearest first, within 30 km', "Du plus proche au plus loin, jusqu'à 30 km") : tx('Allow location to see the places around you', 'Autorise la localisation pour voir les établissements autour de toi')}
+            {userLocation ? tx('Nearest first, within 30 km', "Du plus proche au plus loin, jusqu'à 30 km") : tx('Allow location to see the places around you instead', 'Autorise la localisation pour voir plutôt ceux autour de toi')}
           </Text>
 
           <View style={styles.partnersGrid}>
-            {partners.map(partner => (
+            {shown.map(partner => (
               <TouchableOpacity
                 key={partner.id}
                 style={[styles.partnerCard, cardWidth, { backgroundColor: colors.card, borderColor: colors.border }]}
@@ -435,6 +481,14 @@ const styles = StyleSheet.create({
   partnerRating: { fontSize: 11, fontWeight: '600' },
   partnerCategory: { fontSize: 10 },
   partnerDistance: { fontSize: 9, marginTop: 4, fontWeight: '500' },
+  // The map in the page, its category chips and the button that opens it in full
+  mapSection: { paddingHorizontal: 20, marginBottom: 28 },
+  chips: { gap: 8, paddingBottom: 12 },
+  chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },
+  chipText: { fontSize: 13, fontWeight: '700' },
+  mapCard: { borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
+  openMap: { position: 'absolute', right: 10, bottom: 10, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 4 },
+  openMapText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   partnerBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginBottom: 6 },
   partnerBadgeText: { color: 'white', fontSize: 10, fontWeight: '700' },
   attribution: { textAlign: 'center', fontSize: 10, marginBottom: 12 },
