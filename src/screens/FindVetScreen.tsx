@@ -15,6 +15,7 @@ interface Partner {
   category: string;
   description?: string;
   address?: string;
+  city?: string;
   phone?: string;
   email?: string;
   website?: string;
@@ -40,6 +41,14 @@ const CATEGORIES: [string, string, string, string][] = [
   ['supplies', '🛒', 'Pet shops', 'Animaleries'],
   ['grooming', '✨', 'Groomers', 'Toiletteurs'],
 ];
+
+// What one place is, on its card: [English, French]
+const KIND: Record<string, [string, string]> = {
+  clinic: ['Vet', 'Vétérinaire'],
+  supplies: ['Pet shop', 'Animalerie'],
+  grooming: ['Groomer', 'Toiletteur'],
+  pharmacy: ['Pharmacy', 'Pharmacie'],
+};
 
 export function FindVetScreen() {
   const { colors } = useTheme();
@@ -352,8 +361,16 @@ export function FindVetScreen() {
                   {partner.rating != null && (
                     <Text style={[styles.partnerRating, { color: colors.secondary }]}>⭐ {partner.rating}</Text>
                   )}
-                  <Text style={[styles.partnerCategory, { color: colors.textTertiary }]}>{partner.category}</Text>
+                  <Text style={[styles.partnerCategory, { color: colors.textTertiary }]}>
+                    {KIND[partner.category] ? tx(...KIND[partner.category]) : partner.category}
+                  </Text>
                 </View>
+                {/* Where it is: its street address when OpenStreetMap has it, its town otherwise */}
+                {!!(partner.address || partner.city) && (
+                  <Text style={[styles.partnerAddress, { color: colors.textSecondary }]} numberOfLines={2}>
+                    {partner.address || partner.city}
+                  </Text>
+                )}
                 {/* != null: a distance of 0 would render a bare "0" outside <Text> and crash */}
                 {partner.distance != null && (
                   <Text style={[styles.partnerDistance, { color: colors.textSecondary }]}>📍 {partner.distance} km</Text>
@@ -479,7 +496,8 @@ const styles = StyleSheet.create({
 
   partnerMeta: { width: '100%', alignItems: 'center', gap: 2 },
   partnerRating: { fontSize: 11, fontWeight: '600' },
-  partnerCategory: { fontSize: 10 },
+  partnerCategory: { fontSize: 11, fontWeight: '600' },
+  partnerAddress: { fontSize: 11, lineHeight: 15, textAlign: 'center', marginTop: 6 },
   partnerDistance: { fontSize: 9, marginTop: 4, fontWeight: '500' },
   // The map in the page, its category chips and the button that opens it in full
   mapSection: { paddingHorizontal: 20, marginBottom: 28 },
