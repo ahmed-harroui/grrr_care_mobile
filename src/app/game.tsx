@@ -7,19 +7,22 @@ import { useLanguage } from '@/context/LanguageContext';
 import { usePetSelector } from '@/context/PetSelectorContext';
 import { grrrCareApi } from '@/lib/grrrr-care-api';
 import { getPetHealthScore } from '@/lib/health-score';
+import { birthDate } from '@/lib/care-plan';
 import { getDailyStreak } from '@/lib/rewards';
 import { GameView } from '@/components/GameView';
-import type { GameViewProps } from '@/components/game-url';
+import type { GameKind, GameViewProps } from '@/components/game-url';
 
 const STORE_URL = 'https://store.greatrascals.com/';
 const SKY = '#5fbcff';
 const INK = '#0f1b3d';
 
-// The animals of the game's planet, and the species of the account's pets that take their place
-const KINDS: [keyof GameViewProps['names'], RegExp][] = [['cat', /cat|chat/i], ['dog', /dog|chien/i], ['parrot', /parrot|perroquet|bird|oiseau/i], ['rabbit', /rabbit|lapin/i]];
+// The animals of the game's planet, the species of the account's pets that take their place, and
+// the age (years) from which one is a senior
+const KINDS: [GameKind, RegExp, number][] = [['cat', /cat|chat/i, 10], ['dog', /dog|chien/i, 8], ['parrot', /parrot|perroquet|perruche|bird|oiseau/i, 99], ['rabbit', /rabbit|lapin/i, 5]];
 
 /**
- * The game "help your pets": 90 seconds on a small planet, a worry to sort out for each animal.
+ * The game "help your pets": 90 seconds on a small planet, with the player's own animals (a dog
+ * and a cat at home: a dog and a cat in the game) and the worries of their species and age.
  * Finishing a game is what unlocks day 7 of the weekly gifts. The game never navigates itself:
  * its links to the rest of Care are opened from here.
  */
@@ -28,7 +31,7 @@ export default function GameScreen() {
   const { language } = useLanguage();
   const { selectedPetId } = usePetSelector();
   const tx = (en: string, fr: string) => (language === 'fr' ? fr : en);
-  const [setup, setSetup] = useState<{ names: GameViewProps['names']; health: number | null } | null>(null);
+  const [setup, setSetup] = useState<{ names: GameViewProps['names']; stages: NonNullable<GameViewProps['stages']>; health: number | null } | null>(null);
   // Whether a game of this week already counts for the gift
   const [counted, setCounted] = useState(false);
   const [justWon, setJustWon] = useState(false);
@@ -38,16 +41,23 @@ export default function GameScreen() {
     (async () => {
       const pets: any[] = await grrrCareApi.getPets(user?.id).catch(() => []);
       const names: GameViewProps['names'] = {};
-      for (const [kind, species] of KINDS) {
-        const pet = pets.find(p => species.test(String(p.species)));
-        if (pet?.pet_name) names[kind] = pet.pet_name;
-      }
+      const stages: NonNullable<GameViewProps['stages']> = {};
       const followed = pets.find(p => p.id === selectedPetId) ?? pets[0];
+      for (const [kind, species, seniorFrom] of KINDS) {
+        // Two dogs at home: the one followed in the app plays
+        const pet = [followed, ...pets].find(p => p && species.test(String(p.species)));
+        if (!pet?.pet_name) continue;
+        names[kind] = pet.pet_name;
+        const born = birthDate(pet);
+        const years = born ? (Date.now() - born.getTime()) / (365.25 * 864e5) : null;
+        if (years != null && years < 1) stages[kind] = 'young';
+        else if (years != null && years >= seniorFrom) stages[kind] = 'senior';
+      }
       const score = followed ? await getPetHealthScore(followed).catch(() => null) : null;
       const streak = isDemo ? null : await getDailyStreak();
       if (!active) return;
       setCounted(!!streak?.gamePlayed);
-      setSetup({ names, health: score?.status === 'ok' ? score.score : null });
+      setSetup({ names, stages, health: score?.status === 'ok' ? score.score : null });
     })();
     return () => {
       active = false;
@@ -92,7 +102,7 @@ export default function GameScreen() {
         </Text>
       </View>
       {setup ? (
-        <GameView language={language === 'fr' ? 'fr' : 'en'} names={setup.names} health={setup.health} onEvent={onEvent} />
+        <GameView language={language === 'fr' ? 'fr' : 'en'} names={setup.names} stages={setup.stages} health={setup.health} onEvent={onEvent} />
       ) : (
         <View style={styles.loading}>
           <ActivityIndicator color="#FFFFFF" size="large" />

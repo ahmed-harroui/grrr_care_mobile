@@ -361,15 +361,16 @@ const PINS2 = [[108, -3.4], [150, 2.6], [200, 2.2], [231, -2.2], [270, 3.0], [30
   // ---------- state ----------
   const emit = (type, payload) => { const msg = { source: "grrr-care-game", type, payload: payload || {} }; try { opts.onEvent && opts.onEvent(type, msg.payload); } catch (e) { console.error(e); } try { if (opts.postMessage !== false && window.parent && window.parent !== window) window.parent.postMessage(msg, opts.targetOrigin || "*"); } catch (e) { /* ignore */ } };
   const S = { mode: "intro", time: 0, left: CFG.duration, kibble: 0, health: opts.startHealth === undefined ? 70 : opts.startHealth, solved: 0, missed: 0, spawnIn: 1.2, th: PETS[0].site + 25, vel: 0, focusI: -1, focusK: 0, sheetStage: "", paused: false, lastSc: null };
+  const SEEN = new Set();
   const PS = PETS.map(() => ({ sc: null, left: 0, sad: 0, fixT: 99, prop: null, propT: 99, tries: 0, lastSc: null }));
   const fmt = (s, i) => s.replace(/\{n\}/g, PETS[i].name);
   function hudSync() { $("[data-k]").textContent = S.kibble; $("[data-h]").textContent = Math.round(S.health); $("[data-hb]").style.width = S.health + "%"; const t = Math.max(0, Math.ceil(S.left)); $("[data-t]").textContent = Math.floor(t / 60) + ":" + String(t % 60).padStart(2, "0"); $("[data-mute]").classList.toggle("gcg-off", muted); }
   function say(text, good) { toast.textContent = text; toast.className = "gcg-toast gcg-on" + (good ? " gcg-good" : ""); clearTimeout(say.t); say.t = setTimeout(() => (toast.className = "gcg-toast"), 1900); }
   function spawn(force) {
     const free = PS.map((p, i) => (p.sc ? -1 : i)).filter((i) => i >= 0 && i !== S.focusI); if (!free.length) return false;
-    let pool = SCENARIOS.filter((s) => free.some((i) => PETS[i].id === s.pet) && s.id !== S.lastSc); if (force) pool = SCENARIOS.filter((s) => s.id === force); if (!pool.length) return false;
+    const forFree = (s) => free.some((i) => PETS[i].id === s.pet) && s.id !== S.lastSc; let pool = SCENARIOS.filter((s) => forFree(s) && !SEEN.has(s.id)); if (!pool.length && SCENARIOS.some(forFree)) { SEEN.clear(); pool = SCENARIOS.filter(forFree); } if (force) pool = SCENARIOS.filter((s) => s.id === force); if (!pool.length) return false;
     const sc = pool[Math.floor(Math.random() * pool.length)], i = PETS.findIndex((p) => p.id === sc.pet), p = PS[i]; if (p.sc) return false;
-    p.sc = sc; p.left = CFG.patience; p.tries = 0; p.fixT = 99; S.lastSc = sc.id; SFX.alert(); emit("problem", { scenario: sc.id, pet: sc.pet, name: PETS[i].name }); return true;
+    p.sc = sc; p.left = CFG.patience; p.tries = 0; p.fixT = 99; S.lastSc = sc.id; SEEN.add(sc.id); SFX.alert(); emit("problem", { scenario: sc.id, pet: sc.pet, name: PETS[i].name }); return true;
   }
   function start() { Object.assign(S, { mode: "play", left: CFG.duration, kibble: 0, health: opts.startHealth === undefined ? 70 : opts.startHealth, solved: 0, missed: 0, spawnIn: 0.8, focusI: -1 }); PS.forEach((p) => Object.assign(p, { sc: null, fixT: 99, propT: 99 })); cardIntro.classList.remove("gcg-show"); cardEnd.classList.remove("gcg-show"); hud.classList.add("gcg-show"); hudSync(); SFX.pop(); emit("start", { duration: CFG.duration }); }
   function finish() { S.mode = "end"; closeSheet(true); hud.classList.remove("gcg-show"); const r = { solved: S.solved, missed: S.missed, kibble: S.kibble, health: Math.round(S.health) };
@@ -459,6 +460,7 @@ const PINS2 = [[108, -3.4], [150, 2.6], [200, 2.2], [231, -2.2], [270, 3.0], [30
   }
   let raf = 0, last = 0, dead = false;
   function loop(now) { if (dead) return; raf = requestAnimationFrame(loop); const dt = Math.min((now - last) / 1000 || 0.016, 0.05); last = now; if (S.hidden) return; frame(dt); }
+  if (Array.isArray(opts.only) && opts.only.length) { [cat, dog, par, rab].forEach((a, i) => { const on = opts.only.includes(PETS[i].id); a.root.visible = on; OWN[i].root.visible = on; if (i === 2) perchA.visible = on; }); const first = PETS.find((p) => opts.only.includes(p.id)); if (first) S.th = first.site + 25; }
   hudSync(); frame(0.016); raf = requestAnimationFrame(loop); emit("ready", { version: VERSION, scenarios: SCENARIOS.map((s) => s.id) });
 
   return {

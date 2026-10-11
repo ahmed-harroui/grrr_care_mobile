@@ -10,37 +10,34 @@
 <div id="game"></div>
 <script src="/grrr-care-game/three.min.js"></script>
 <script src="/grrr-care-game/grrr-care-game.js"></script>
+<script src="/grrr-care-game/scenarios.js"></script>
 <script>
 // The game inside GRRR Care: shown in an <iframe> on the web, in a WebView in the phone app.
 // From the app, in the address: ?lang=fr|en  &health=82  &cat=… &dog=… &parrot=… &rabbit=… (the names of the
-// account's own pets)  &quality=low  &muted=1
+// account's own pets: only the animals named are on the planet, and only their worries are asked)
+// &young=dog,cat &senior=rabbit (their age, for the worries of that age)  &quality=low  &muted=1
 // Every event of the game goes back to the app, which decides what to do with it (INTEGRATION.md §5).
 const q = new URLSearchParams(location.search);
 const english = q.get("lang") === "en";
 
+const KINDS = ["cat", "dog", "parrot", "rabbit"];
 const pets = {};
-for (const kind of ["cat", "dog", "parrot", "rabbit"]) {
+for (const kind of KINDS) {
   const name = (q.get(kind) || "").slice(0, 20);
   if (name) pets[kind] = { name };
 }
+// The player's own animals; none of the four (a demo, a hamster…): the whole planet
+const mine = KINDS.filter((kind) => pets[kind]);
+const shown = mine.length ? mine : KINDS;
+const list = (key) => (q.get(key) || "").split(",");
+const stages = {};
+for (const kind of shown) stages[kind] = list("young").includes(kind) ? "young" : list("senior").includes(kind) ? "senior" : "adult";
 
 const EN_STRINGS = {
   tagline: "A worry? You can sort it out yourself.", how: "Spin the planet, tap the “!” and pick the right move.",
   play: "Play", replay: "Play again", askGrrr: "Ask GRRR", next: "Continue", health: "Health score", ask: "What to do?",
   wrong: "Not quite…", endTitle: "Well done!", endSolved: "worries sorted", endMissed: "missed", kibble: "treats",
 };
-const EN_SCENARIOS = [
-  { id: "cat-water", pet: "cat", q: "{n} hardly drinks any more.", options: ["A water fountain", "More kibble", "A bowl of milk"], correct: 0, tip: "Cats prefer running water.", ok: "{n} is drinking", prop: "fountain", cta: { target: "store", label: "See in the shop" } },
-  { id: "cat-hair", pet: "cat", q: "{n} keeps coughing up hairballs.", options: ["A bath every day", "Brush often", "Change the litter"], correct: 1, tip: "Regular brushing means less swallowed hair.", ok: "{n} is all soft", prop: "brush", cta: { target: "store", label: "See in the shop" } },
-  { id: "dog-fleas", pet: "dog", q: "{n} won't stop scratching!", options: ["Put a jumper on", "Fewer walks", "A monthly flea treatment"], correct: 2, tip: "Flea season: treat every month.", ok: "{n} is protected", prop: "pipette", cta: { target: "reminder", label: "Create a reminder" } },
-  { id: "dog-weight", pet: "dog", q: "{n} has put on weight.", options: ["More play and walks", "Skip meals", "More treats"], correct: 0, tip: "Exercise every day and measured portions.", ok: "{n} is burning energy", prop: "ball", cta: { target: "health", label: "Follow the health score" } },
-  { id: "dog-choc", pet: "dog", q: "{n} ate chocolate!", options: ["Wait until tomorrow", "Call a vet now", "Give some milk"], correct: 1, tip: "Chocolate is toxic for dogs: this one is for the vet.", ok: "The vet is on it", prop: "phone", cta: { target: "vet", label: "Vets nearby" } },
-  { id: "parrot-pluck", pet: "parrot", q: "{n} is pulling feathers out…", options: ["Leave alone", "Toys and time with you", "Cover the cage all day"], correct: 1, tip: "Boredom: it needs play and company.", ok: "{n} is having fun", prop: "toy", cta: { target: "assistant", label: "Ask GRRR" } },
-  { id: "parrot-dull", pet: "parrot", q: "{n}'s feathers look dull.", options: ["A lukewarm mist shower", "Shampoo", "Bread"], correct: 0, tip: "A mist of lukewarm water keeps the plumage in shape.", ok: "{n} is shining", prop: "spray", cta: { target: "assistant", label: "Ask GRRR" } },
-  { id: "rabbit-hay", pet: "rabbit", q: "{n} is ignoring the pellets.", options: ["Only carrots", "Sweets", "Hay at all times"], correct: 2, tip: "A rabbit needs hay at all times.", ok: "{n} is tucking in", prop: "hay", cta: { target: "store", label: "See in the shop" } },
-  { id: "rabbit-chew", pet: "rabbit", q: "{n} is gnawing the furniture.", options: ["Wood to gnaw", "Tell off", "Keep in the cage"], correct: 0, tip: "The teeth never stop growing: it has to gnaw.", ok: "{n} has something to gnaw", prop: "stick", cta: { target: "store", label: "See in the shop" } },
-];
-
 const health = Number(q.get("health"));
 window.game = GrrrCareGame.mount("#game", {
   assetBase: "/grrr-care-game/",
@@ -50,7 +47,10 @@ window.game = GrrrCareGame.mount("#game", {
   startHealth: health >= 1 && health <= 100 ? health : undefined,
   pets,
   strings: english ? EN_STRINGS : undefined,
-  scenarios: english ? EN_SCENARIOS : undefined,
+  scenarios: GrrrCareScenarios(english ? "en" : "fr", shown, stages),
+  only: shown,
+  // One animal alone: its worries come one after the other, a little faster
+  spawnEvery: shown.length === 1 ? 4.5 : undefined,
   // Web: to the page that holds the iframe, same site only
   targetOrigin: location.origin,
   // Phone app: the WebView has no parent page, its own bridge carries the events
