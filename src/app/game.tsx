@@ -18,10 +18,19 @@ const INK = '#0f1b3d';
 
 // The animals of the game's planet, the species of the account's pets that take their place, and
 // the age (years) from which one is a senior
-const KINDS: [GameKind, RegExp, number][] = [['cat', /cat|chat/i, 10], ['dog', /dog|chien/i, 8], ['parrot', /parrot|perroquet|perruche|bird|oiseau/i, 99], ['rabbit', /rabbit|lapin/i, 5]];
+const KINDS: [GameKind, RegExp, number][] = [
+  ['cat', /cat|chat/i, 10],
+  ['dog', /dog|chien/i, 8],
+  ['parrot', /parrot|perroquet|perruche|bird|oiseau/i, 99],
+  ['rabbit', /rabbit|lapin/i, 5],
+  ['horse', /horse|cheval|pony|poney/i, 99],
+  ['turtle', /turtle|tortoise|tortue/i, 99],
+  ['hamster', /hamster/i, 99],
+  ['fish', /fish|poisson/i, 99],
+];
 
 /**
- * The game "help your pets": 90 seconds on a small planet, with the player's own animals (a dog
+ * The game "help your pets": 2 minutes on a small planet, with the player's own animals (a dog
  * and a cat at home: a dog and a cat in the game) and the worries of their species and age.
  * Finishing a game is what unlocks day 7 of the weekly gifts. The game never navigates itself:
  * its links to the rest of Care are opened from here.

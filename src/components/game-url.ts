@@ -1,6 +1,6 @@
 // The address of the game's page (public/grrr-care-game/play.html), shared by the web iframe and the phone's WebView
 
-export type GameKind = 'cat' | 'dog' | 'parrot' | 'rabbit';
+export type GameKind = 'cat' | 'dog' | 'parrot' | 'rabbit' | 'horse' | 'turtle' | 'hamster' | 'fish';
 
 export interface GameViewProps {
   language: 'en' | 'fr';

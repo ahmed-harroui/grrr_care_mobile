@@ -204,7 +204,7 @@ export default function HomeScreen() {
           <Text style={styles.gameEmoji}>🌍</Text>
           <View style={styles.askText}>
             <Text style={styles.gameTitle}>{language === 'fr' ? 'Aide tes compagnons' : 'Help your pets'}</Text>
-            <Text style={styles.gameDesc}>{language === 'fr' ? 'Le jeu de la semaine : 90 secondes pour débloquer le cadeau du jour 7' : "This week's game: 90 seconds to unlock day 7's gift"}</Text>
+            <Text style={styles.gameDesc}>{language === 'fr' ? 'Le jeu de la semaine : 2 minutes pour débloquer le cadeau du jour 7' : "This week's game: 2 minutes to unlock day 7's gift"}</Text>
           </View>
           <Text style={styles.gameArrow}>→</Text>
         </TouchableOpacity>

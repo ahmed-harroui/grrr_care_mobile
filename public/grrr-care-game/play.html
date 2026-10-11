@@ -13,20 +13,20 @@
 <script src="/grrr-care-game/scenarios.js"></script>
 <script>
 // The game inside GRRR Care: shown in an <iframe> on the web, in a WebView in the phone app.
-// From the app, in the address: ?lang=fr|en  &health=82  &cat=… &dog=… &parrot=… &rabbit=… (the names of the
+// From the app, in the address: ?lang=fr|en  &health=82  &cat=… &dog=… &parrot=… &rabbit=… &horse=… &turtle=… &hamster=… &fish=… (the names of the
 // account's own pets: only the animals named are on the planet, and only their worries are asked)
 // &young=dog,cat &senior=rabbit (their age, for the worries of that age)  &quality=low  &muted=1
 // Every event of the game goes back to the app, which decides what to do with it (INTEGRATION.md §5).
 const q = new URLSearchParams(location.search);
 const english = q.get("lang") === "en";
 
-const KINDS = ["cat", "dog", "parrot", "rabbit"];
+const KINDS = ["cat", "dog", "parrot", "rabbit", "horse", "turtle", "hamster", "fish"];
 const pets = {};
 for (const kind of KINDS) {
   const name = (q.get(kind) || "").slice(0, 20);
   if (name) pets[kind] = { name };
 }
-// The player's own animals; none of the four (a demo, a hamster…): the whole planet
+// The player's own animals; none of the eight (a ferret alone…): the whole planet
 const mine = KINDS.filter((kind) => pets[kind]);
 const shown = mine.length ? mine : KINDS;
 const list = (key) => (q.get(key) || "").split(",");

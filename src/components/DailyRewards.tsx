@@ -147,7 +147,7 @@ export function DailyRewards() {
                 <Text style={styles.gameIcon}>{gamePlayed ? '✅' : '🎮'}</Text>
                 <View style={styles.gameBody}>
                   <Text style={styles.gameTitle}>{gamePlayed ? tx("This week's game is done", 'Jeu de la semaine fait') : tx('Help your pets', 'Aide tes compagnons')}</Text>
-                  <Text style={styles.gameText}>{gamePlayed ? tx('Day 7 is unlocked. Play again whenever you like.', 'Le jour 7 est débloqué. Rejoue quand tu veux.') : tx("Finish a 90-second game this week to unlock day 7's gift.", 'Finis une partie de 90 secondes cette semaine pour débloquer le cadeau du jour 7.')}</Text>
+                  <Text style={styles.gameText}>{gamePlayed ? tx('Day 7 is unlocked. Play again whenever you like.', 'Le jour 7 est débloqué. Rejoue quand tu veux.') : tx("Finish a 2-minute game this week to unlock day 7's gift.", 'Finis une partie de 2 minutes cette semaine pour débloquer le cadeau du jour 7.')}</Text>
                 </View>
                 <Text style={styles.gameArrow}>→</Text>
               </Pressable>
