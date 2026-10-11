@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { router } from 'expo-router';
 import { authService } from '../lib/auth';
 import { grrrCareApi, setDemoMode } from '../lib/grrrr-care-api';
 import { signInWithGoogle, signOutGoogle } from '../lib/google-auth';
@@ -151,6 +152,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Back to the sign-in screen right away; Supabase follows, even when it fails or never answers
   const logout = async () => {
     const wasDemo = isDemo;
+    // Back to the home address first: the next sign-in, maybe another account, must not open on the page
+    // (a pet's file...) this session was left on
+    try {
+      router.replace('/');
+    } catch {
+      // No navigator mounted: nothing to reset
+    }
     setUser(null);
     setIsDemo(false);
     setDemoMode(false);

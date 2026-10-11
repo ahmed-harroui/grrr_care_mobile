@@ -14,29 +14,42 @@ export default function PetProfileScreen() {
   const isNew = id === 'new';
   const { colors } = useTheme();
   const { t } = useLanguage();
-  const { user } = useAuth();
+  const { user, isDemo } = useAuth();
   const { selectPet } = usePetSelector();
   const [pet, setPet] = useState<any>(null);
   const [loading, setLoading] = useState(!isNew);
+
+  // Out of this page: back where I came from, or to my pets when the page was opened by its address
+  // (a reload, a link, the address left in the browser by an earlier session): there is nothing to go back to then.
+  const leave = () => {
+    if (router.canGoBack()) router.back();
+    else router.replace('/(tabs)/pets');
+  };
 
   useEffect(() => {
     if (isNew) return;
     grrrCareApi
       .getPetById(id)
-      .then(setPet)
+      .then(found => {
+        // Not a pet of this account (another session's address, a demo pet): nothing to show here
+        if (!found || (!isDemo && user && found.owner_id && found.owner_id !== user.id)) router.replace('/(tabs)/pets');
+        else setPet(found);
+      })
       .finally(() => setLoading(false));
-  }, [id, isNew]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, isNew, user?.id]);
 
   const onSaved = (saved: any) => {
     if (isNew && saved?.id) selectPet(saved.id);
-    router.back();
+    leave();
   };
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { borderBottomColor: colors.border, backgroundColor: colors.card }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12}>
+        <TouchableOpacity onPress={leave} style={styles.backBtn} hitSlop={12} accessibilityRole="button" accessibilityLabel={t('common.back')}>
           <Text style={[styles.backText, { color: colors.primary }]}>‹</Text>
+          <Text style={[styles.backLabel, { color: colors.primary }]}>{t('common.back')}</Text>
         </TouchableOpacity>
         <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
           {isNew ? t('petForm.newPet') : pet?.pet_name || t('petForm.editPet')}
@@ -72,8 +85,9 @@ export default function PetProfileScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 1 },
-  backBtn: { width: 40, alignItems: 'flex-start' },
+  backBtn: { width: 96, flexDirection: 'row', alignItems: 'center', gap: 4 },
   backText: { fontSize: 34, fontWeight: '400', lineHeight: 36 },
+  backLabel: { fontSize: 15, fontWeight: '700' },
   title: { flex: 1, textAlign: 'center', fontSize: 17, fontWeight: '800' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   documents: { marginTop: 24 },
