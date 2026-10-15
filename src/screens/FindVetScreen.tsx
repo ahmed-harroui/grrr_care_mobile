@@ -7,6 +7,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { useDevice } from '../lib/device';
 import { grrrCareApi } from '../lib/grrrr-care-api';
 import { PartnersMapView } from './PartnersMapView';
+import type { MapArea } from './partners-map-html';
 import { AppHeader } from '../components/AppHeader';
 
 interface Partner {
@@ -50,6 +51,15 @@ const KIND: Record<string, [string, string]> = {
   pharmacy: ['Pharmacy', 'Pharmacie'],
 };
 
+/** As the crow flies, between two points */
+function distanceKm(a: { latitude: number; longitude: number }, b: { latitude: number; longitude: number }) {
+  const rad = Math.PI / 180;
+  const dLat = (b.latitude - a.latitude) * rad;
+  const dLon = (b.longitude - a.longitude) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.latitude * rad) * Math.cos(b.latitude * rad) * Math.sin(dLon / 2) ** 2;
+  return 12742 * Math.asin(Math.sqrt(h));
+}
+
 export function FindVetScreen() {
   const { colors } = useTheme();
   const { page, columns, isWide } = useDevice();
@@ -64,6 +74,29 @@ export function FindVetScreen() {
   const [loading, setLoading] = useState(true);
   const [userLocation, setUserLocation] = useState<{ latitude: number; longitude: number; city?: string } | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+  // The map's places: those of every area looked at so far (the list stays the ones around the owner)
+  const [mapPartners, setMapPartners] = useState<Partner[]>([]);
+  const loadedAreas = useRef<MapArea[]>([]);
+  const moveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const addToMap = (places: Partner[]) => setMapPartners(current => {
+    const byId = new Map(current.map(p => [p.id, p]));
+    for (const place of places) byId.set(place.id, place);
+    // Past 2000 places, the oldest areas make way
+    return [...byId.values()].slice(-2000);
+  });
+
+  // The map was moved or zoomed: the places of the area now looked at, unless they are already there
+  const onMapMove = useCallback((area: MapArea) => {
+    if (moveTimer.current) clearTimeout(moveTimer.current);
+    moveTimer.current = setTimeout(async () => {
+      const km = Math.min(Math.max(area.km * 1.1, 3), 120);
+      const known = loadedAreas.current.some(done => done.km >= km && distanceKm(done, area) + km <= done.km * 1.05);
+      if (known) return;
+      loadedAreas.current = [...loadedAreas.current.slice(-30), { ...area, km }];
+      addToMap(await grrrCareApi.getAllPartners(area, km, 400));
+    }, 400);
+  }, []);
 
   // The location is passed in: the state set just before isn't visible yet in this call
   const loadPartners = async (location: typeof userLocation, { quiet = false } = {}) => {
@@ -77,6 +110,7 @@ export function FindVetScreen() {
       ]);
 
       setFeatured(featuredData);
+      addToMap(nearby);
       setPartners(nearby.map((p: any) => ({ ...p, distance: !location || p.distance_km == null ? undefined : Math.round(p.distance_km * 10) / 10 })));
     } catch (error) {
       console.error('Error loading partners:', error);
@@ -187,11 +221,14 @@ export function FindVetScreen() {
 
   // One kind of place, or all of them: the map and the list show the same ones
   const shown = category === 'all' ? partners : partners.filter(p => p.category === category);
+  const shownOnMap = category === 'all' ? mapPartners : mapPartners.filter(p => p.category === category);
   const categoryChips = (
     <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
       {CATEGORIES.map(([key, emoji, en, fr]) => {
         const active = category === key;
-        const count = key === 'all' ? partners.length : partners.filter(p => p.category === key).length;
+        // On the map, every place loaded; in the page, the ones around the owner
+        const counted = viewMode === 'map' ? mapPartners : partners;
+        const count = key === 'all' ? counted.length : counted.filter(p => p.category === key).length;
         return (
           <TouchableOpacity
             key={key}
@@ -224,7 +261,7 @@ export function FindVetScreen() {
           </TouchableOpacity>
           <View style={{ flex: 1 }}>{categoryChips}</View>
         </View>
-        <PartnersMapView partners={shown} userLocation={userLocation || undefined} />
+        <PartnersMapView partners={shownOnMap} userLocation={userLocation || undefined} onMove={onMapMove} />
       </SafeAreaView>
     );
   }
@@ -253,7 +290,7 @@ export function FindVetScreen() {
       <View style={styles.mapSection}>
         {categoryChips}
         <View style={[styles.mapCard, { height: isWide ? 400 : 260, borderColor: colors.border, backgroundColor: colors.card }]}>
-          <PartnersMapView partners={shown} userLocation={userLocation || undefined} />
+          <PartnersMapView partners={shownOnMap} userLocation={userLocation || undefined} onMove={onMapMove} />
           <TouchableOpacity
             style={[styles.openMap, { backgroundColor: colors.primary }]}
             onPress={() => setViewMode('map')}

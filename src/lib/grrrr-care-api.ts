@@ -824,10 +824,11 @@ export const grrrCareApi = {
 
   // The map holds every vet, pet shop and groomer of the country (imported from OpenStreetMap, migration 018):
   // with a position, the places around it, nearest first; without one, only the establishments that are partners.
-  async getAllPartners(location?: { latitude: number; longitude: number } | null) {
+  /** The places around a point, nearest first (km: how far around it, limit: how many at most) */
+  async getAllPartners(location?: { latitude: number; longitude: number } | null, km = 30, limit = 200) {
     try {
       const { data, error } = location
-        ? await supabase.rpc('partners_near', { p_latitude: location.latitude, p_longitude: location.longitude, p_km: 30, p_limit: 200 })
+        ? await supabase.rpc('partners_near', { p_latitude: location.latitude, p_longitude: location.longitude, p_km: km, p_limit: limit })
         : await supabase
             .from('partners')
             .select('*')
