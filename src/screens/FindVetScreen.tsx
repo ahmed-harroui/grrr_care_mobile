@@ -289,7 +289,7 @@ export function FindVetScreen() {
       {/* The map, right in the page, for the kind of place chosen */}
       <View style={styles.mapSection}>
         {categoryChips}
-        <View style={[styles.mapCard, { height: isWide ? 400 : 260, borderColor: colors.border, backgroundColor: colors.card }]}>
+        <View style={[styles.mapCard, { height: isWide ? 460 : 380, borderColor: colors.border, backgroundColor: colors.card }]}>
           <PartnersMapView partners={shownOnMap} userLocation={userLocation || undefined} onMove={onMapMove} />
           <TouchableOpacity
             style={[styles.openMap, { backgroundColor: colors.primary }]}

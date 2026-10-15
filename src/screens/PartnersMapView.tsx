@@ -55,9 +55,9 @@ export function PartnersMapView({ partners, userLocation, onMove }: PartnersMapV
           }
           onMove?.({ latitude: message.latitude, longitude: message.longitude, km: message.km });
         }}
-        // The "directions" link opens the phone's maps, not inside the map
+        // The place card's links (directions, call, website) open outside the map
         onShouldStartLoadWithRequest={request => {
-          if (request.url.startsWith('https://www.google.com/maps')) {
+          if (/^(https?|tel|mailto):/.test(request.url)) {
             void Linking.openURL(request.url);
             return false;
           }
