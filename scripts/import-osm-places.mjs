@@ -1,5 +1,6 @@
-// Fills the map with the real establishments OpenStreetMap knows in France: vets, pet shops and groomers.
+// Fills the map with the real establishments OpenStreetMap knows in France (or Morocco): vets, pet shops and groomers.
 //   node scripts/import-osm-places.mjs            fetch the whole country, then write to the linked Supabase project
+//   node scripts/import-osm-places.mjs --maroc    the same for Morocco (its southern provinces included)
 //   node scripts/import-osm-places.mjs --dry-run  fetch and count only
 //   node scripts/import-osm-places.mjs --cached   write what the last run fetched, without asking OpenStreetMap again
 // Safe to run again: places are matched on their OpenStreetMap id, so a new run updates their details and never
@@ -13,7 +14,8 @@ import { join } from 'node:path';
 
 const DRY_RUN = process.argv.includes('--dry-run');
 const CACHED = process.argv.includes('--cached');
-const CACHE = join(tmpdir(), 'grrr-care-osm-places.json');
+const MOROCCO = process.argv.includes('--maroc');
+const CACHE = join(tmpdir(), MOROCCO ? 'grrr-care-osm-places-maroc.json' : 'grrr-care-osm-places.json');
 // The French community's server: fast for France, but it only answers by rectangle, not by region
 const SERVER = 'https://overpass.openstreetmap.fr/api/interpreter';
 const USER_AGENT = 'GRRR-Care-places-import/1.0 (ah001dev@gmail.com)';
@@ -31,6 +33,23 @@ const OVERSEAS = {
   'La Réunion': { south: -21.4, west: 55.2, north: -20.8, east: 55.9 },
   Mayotte: { south: -13.05, west: 44.95, north: -12.6, east: 45.35 },
 };
+
+// Morocco: two rectangles (the north to Tarfaya, west of the Canary Islands; the south down to Lagouira).
+// A rectangle also catches western Algeria, Ceuta, Melilla and northern Mauritania: their outlines and
+// boxes take them out again.
+const MOROCCO_AREAS = [
+  { south: 27.6, west: -13.2, north: 35.95, east: -0.95 },
+  { south: 20.7, west: -17.2, north: 27.6, east: -8.6 },
+];
+const NEIGHBOURS = ['DZA', 'MRT'].map(code => `https://raw.githubusercontent.com/johan/world.geo.json/master/countries/${code}.geo.json`);
+const SPANISH_TOWNS = [
+  { south: 35.85, west: -5.42, north: 35.93, east: -5.25 }, // Ceuta
+  { south: 35.25, west: -2.98, north: 35.33, east: -2.9 }, // Melilla
+];
+
+// Morocco's map holds entries that are no pet place: codes typed as a name ("Aga 1040 az", "Cas 1274"),
+// a petrol station, a dairy, a paediatrician, an office. Left out.
+const MOROCCO_NOT_PLACES = /^[a-z]{1,4}\.? ?\d{2,}|^\d+ |^(shell|khdma|raouy|rab ersd|dar|bourgogne)\b|p[ée]diatre|laiti[eè]re|^inspection /i;
 
 // OpenStreetMap tag → category of the app
 const category = tags => (tags.amenity === 'veterinary' ? 'clinic' : tags.shop === 'pet' ? 'supplies' : tags.shop === 'pet_grooming' ? 'grooming' : null);
@@ -108,7 +127,36 @@ function toPlace(element) {
   };
 }
 
+async function outlineOf(url) {
+  const geojson = await (await fetch(url)).json();
+  const geometry = geojson.geometry ?? geojson.features[0].geometry;
+  const polygons = geometry.type === 'Polygon' ? [geometry.coordinates] : geometry.coordinates;
+  return (longitude, latitude) => polygons.some(polygon => inRing(longitude, latitude, polygon[0]));
+}
+
+// Morocco: the rectangles cut in squares, every place kept unless it is in a neighbour
+async function moroccoBoxes() {
+  const neighbours = await Promise.all(NEIGHBOURS.map(outlineOf));
+  const keep = (longitude, latitude) =>
+    !neighbours.some(inside => inside(longitude, latitude)) &&
+    !SPANISH_TOWNS.some(b => latitude >= b.south && latitude <= b.north && longitude >= b.west && longitude <= b.east);
+  const boxes = [];
+  for (const area of MOROCCO_AREAS) {
+    for (let south = area.south; south < area.north; south += CELL) {
+      for (let west = area.west; west < area.east; west += CELL) {
+        boxes.push({ south, west, north: Math.min(south + CELL, area.north), east: Math.min(west + CELL, area.east), keep, label: `${south.toFixed(1)},${west.toFixed(1)}` });
+      }
+    }
+  }
+  return boxes;
+}
+
 async function fetchPlaces() {
+  const boxes = MOROCCO ? await moroccoBoxes() : await franceBoxes();
+  return fetchBoxes(boxes);
+}
+
+async function franceBoxes() {
   const inMainland = await loadOutline();
   const boxes = [];
   for (let south = MAINLAND.south; south < MAINLAND.north; south += CELL) {
@@ -121,7 +169,10 @@ async function fetchPlaces() {
     }
   }
   for (const [label, box] of Object.entries(OVERSEAS)) boxes.push({ ...box, keep: () => true, label });
+  return boxes;
+}
 
+async function fetchBoxes(boxes) {
   const places = new Map();
   const failed = [];
   for (const [index, box] of boxes.entries()) {
@@ -134,6 +185,7 @@ async function fetchPlaces() {
     let kept = 0;
     for (const element of elements) {
       const place = toPlace(element);
+      if (place && MOROCCO && MOROCCO_NOT_PLACES.test(place.name)) continue;
       if (place && !places.has(place.osm_id) && box.keep(place.longitude, place.latitude)) {
         places.set(place.osm_id, place);
         kept++;
@@ -177,6 +229,9 @@ if (CACHED && existsSync(CACHE)) {
   all = await fetchPlaces();
   writeFileSync(CACHE, JSON.stringify(all));
 }
+
+// Also for places fetched before the list of non-places grew
+if (MOROCCO) all = all.filter(place => !MOROCCO_NOT_PLACES.test(place.name));
 
 const count = predicate => all.filter(predicate).length;
 console.log(`\nTotal: ${all.length} places`);
