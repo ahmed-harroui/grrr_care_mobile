@@ -5,18 +5,26 @@ import { supabase } from '@/lib/supabase';
 // "Continue with Google", as in the GRRRR app (same Google Cloud project, same Supabase
 // provider): Android's own account picker, then the Google ID token signs in to Supabase.
 // The Android OAuth client (com.aharroui.grrrccare + the EAS keystore's SHA-1) is the one
-// Firebase made for this app. Expo Go and the web have no Google Sign-In module.
+// Firebase made for this app. Expo Go has no Google Sign-In module. On the website, Google's own page
+// opens and sends back to this site with the session in the address (Supabase's Redirect URLs must
+// hold https://care.greatrascals.com/**, or it sends back to its Site URL instead).
 
 /** The "Web application" OAuth client Supabase checks the token against (public, not a secret). */
 const WEB_CLIENT_ID = '1097182535628-qdrm143si24fqivlba66ksdgdphnja48.apps.googleusercontent.com';
 const isExpoGo = Constants.executionEnvironment === 'storeClient';
 
-export const googleSignInAvailable = Platform.OS === 'android' && !isExpoGo;
+const nativeGoogle = Platform.OS === 'android' && !isExpoGo;
+export const googleSignInAvailable = nativeGoogle || Platform.OS === 'web';
 
 export type GoogleSignInResult = { error: string | null; cancelled?: boolean };
 
 export async function signInWithGoogle(): Promise<GoogleSignInResult> {
-  if (!googleSignInAvailable) return { error: 'Google Sign-In is not available here.' };
+  if (Platform.OS === 'web') {
+    // Leaves for Google; the session is read from the address on the way back
+    const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: window.location.origin } });
+    return error ? { error: error.message } : { error: null, cancelled: true };
+  }
+  if (!nativeGoogle) return { error: 'Google Sign-In is not available here.' };
   // Loaded here so that Expo Go (without the native module) never imports it.
   const { GoogleSignin, isSuccessResponse, isErrorWithCode, statusCodes } = require('@react-native-google-signin/google-signin');
   GoogleSignin.configure({ webClientId: WEB_CLIENT_ID });
@@ -37,6 +45,13 @@ export async function signInWithGoogle(): Promise<GoogleSignInResult> {
   }
 }
 
+/** Back from Google on the website: a new account takes its name and photo from Google too. */
+export async function fillProfileAfterGoogleRedirect(user: { app_metadata?: any; user_metadata?: any } | null) {
+  if (Platform.OS !== 'web' || user?.app_metadata?.provider !== 'google') return;
+  const meta = user.user_metadata ?? {};
+  await fillProfileFromGoogle(meta.full_name ?? meta.name ?? null, meta.avatar_url ?? meta.picture ?? null).catch(() => {});
+}
+
 /** A new account takes its name and photo from Google (an existing one keeps its own). */
 async function fillProfileFromGoogle(name: string | null, photo: string | null) {
   const { data: auth } = await supabase.auth.getUser();
@@ -51,7 +66,7 @@ async function fillProfileFromGoogle(name: string | null, photo: string | null) 
 
 /** At sign-out: the next "Continue with Google" lets the user pick an account again. */
 export async function signOutGoogle() {
-  if (!googleSignInAvailable) return;
+  if (!nativeGoogle) return;
   try {
     await require('@react-native-google-signin/google-signin').GoogleSignin.signOut();
   } catch {

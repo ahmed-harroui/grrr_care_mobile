@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { router } from 'expo-router';
 import { authService } from '../lib/auth';
 import { grrrCareApi, setDemoMode } from '../lib/grrrr-care-api';
-import { signInWithGoogle, signOutGoogle } from '../lib/google-auth';
+import { fillProfileAfterGoogleRedirect, signInWithGoogle, signOutGoogle } from '../lib/google-auth';
 
 interface User {
   id: string;
@@ -69,7 +69,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       .then(currentUser => {
         if (currentUser) {
           setUser(fromAuthUser(currentUser));
-          loadProfile(currentUser.id);
+          // Back from Google on the website: its name and photo first, for a new account
+          void fillProfileAfterGoogleRedirect(currentUser).finally(() => loadProfile(currentUser.id));
         }
       })
       .catch(() => {
