@@ -114,6 +114,23 @@ export default function LoginScreen() {
       else await register(values.email.trim(), values.password, values.name.trim());
     } catch (e: any) {
       const message = String(e?.message ?? '');
+      // The email already has an account (made in GRRRR or Care: it is the same one). With the
+      // right password that is simply a sign-in; otherwise the sign-in asks for that account's password.
+      if (flow === 'register' && (e?.code === 'EMAIL_TAKEN' || /already registered|already exists/i.test(message))) {
+        try {
+          await login(values.email.trim(), values.password);
+          return;
+        } catch {
+          setFlow('login');
+          setStep(1);
+          setValues({ ...values, password: '' });
+          setError(tx(
+            'This email already has an account (the same for GRRRR and Care). Type its password to sign in.',
+            'Cet email a déjà un compte (le même pour GRRRR et Care). Tape son mot de passe pour te connecter.'
+          ));
+          return;
+        }
+      }
       if (e?.code === 'CONFIRM_EMAIL') {
         // The account exists: once the email link is opened, signing in works.
         setFlow('login');

@@ -27,8 +27,18 @@ function CareBackground({ userId }: { userId: string }) {
   return null;
 }
 
-// Accounts that already have pets (e.g. from the GRRRR app) go straight in; new ones get the pet setup unless they skipped it
+// The pet selector holds the whole signed-in app, the pet setup included: its header (the daily
+// gifts button) reads it, and a brand-new account starts there.
 function SignedInApp({ userId }: { userId: string }) {
+  return (
+    <PetSelectorProvider>
+      <SignedInScreens userId={userId} />
+    </PetSelectorProvider>
+  );
+}
+
+// Accounts that already have pets (e.g. from the GRRRR app) go straight in; new ones get the pet setup unless they skipped it
+function SignedInScreens({ userId }: { userId: string }) {
   const { colors } = useTheme();
   const [status, setStatus] = useState<'checking' | 'onboarding' | 'ready'>('checking');
   // Starter card created with the account (GRRRR migration 008): the setup fills it in
@@ -63,14 +73,14 @@ function SignedInApp({ userId }: { userId: string }) {
   }
 
   return (
-    <PetSelectorProvider>
+    <>
       <CareBackground userId={userId} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="pet/[id]" />
         <Stack.Screen name="game" />
       </Stack>
-    </PetSelectorProvider>
+    </>
   );
 }
 
