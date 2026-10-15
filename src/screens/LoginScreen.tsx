@@ -18,6 +18,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
 import { googleSignInAvailable } from '../lib/google-auth';
+import { supabase } from '../lib/supabase';
 
 // Sign-in and sign-up as a short conversation with the assistant: one question per screen, the
 // logo talks, the button wakes up once the answer is valid, and mistakes shake the field instead
@@ -90,6 +91,17 @@ export default function LoginScreen() {
     else setFlow('welcome');
   };
 
+  // An account made with "Continue with Google" has no password: says where to sign in instead (migration 022)
+  const madeWithGoogle = async (email: string) => {
+    const { data } = await supabase.rpc('sign_in_methods', { p_email: email });
+    const methods: string[] = Array.isArray(data) ? data : [];
+    if (!methods.includes('google') || methods.includes('email')) return false;
+    setError(googleSignInAvailable
+      ? tx('This account was made with Google: touch “Continue with Google” to sign in.', 'Ce compte a été créé avec Google : touche « Continuer avec Google » pour te connecter.')
+      : tx('This account was made with Google: sign in with Google in the GRRRR app or the Care phone app (same account).', "Ce compte a été créé avec Google : connecte-toi avec Google dans l'app GRRRR ou l'app Care sur téléphone (même compte)."));
+    return true;
+  };
+
   const next = async () => {
     if (!field || loading) return;
     if (!valid) {
@@ -124,6 +136,7 @@ export default function LoginScreen() {
           setFlow('login');
           setStep(1);
           setValues({ ...values, password: '' });
+          if (await madeWithGoogle(values.email.trim())) return;
           setError(tx(
             'This email already has an account (the same for GRRRR and Care). Type its password to sign in.',
             'Cet email a déjà un compte (le même pour GRRRR et Care). Tape son mot de passe pour te connecter.'
@@ -136,6 +149,10 @@ export default function LoginScreen() {
         setFlow('login');
         setStep(1);
         setError(tx('Account created! Open the link we emailed you, then sign in here.', 'Compte créé ! Ouvre le lien reçu par email, puis connecte-toi ici.'));
+        return;
+      }
+      if (flow === 'login' && /invalid login|invalid credentials/i.test(message) && (await madeWithGoogle(values.email.trim()))) {
+        doShake();
         return;
       }
       setError(
