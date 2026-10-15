@@ -542,7 +542,8 @@ const styles = StyleSheet.create({
   chip: { paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, borderWidth: 1 },
   chipText: { fontSize: 13, fontWeight: '700' },
   mapCard: { borderRadius: 18, borderWidth: 1, overflow: 'hidden' },
-  openMap: { position: 'absolute', right: 10, bottom: 10, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 4 },
+  // At the top: the bottom of the map is for the place card
+  openMap: { position: 'absolute', right: 10, top: 10, paddingHorizontal: 14, paddingVertical: 10, borderRadius: 14, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 6, elevation: 4 },
   openMapText: { color: '#FFFFFF', fontSize: 13, fontWeight: '800' },
   partnerBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, marginBottom: 6 },
   partnerBadgeText: { color: 'white', fontSize: 10, fontWeight: '700' },
