@@ -17,11 +17,11 @@ const STORE_URL = (Deno.env.get('STORE_URL') ?? 'https://store.greatrascals.com'
 const STRIPE_KEY = Deno.env.get('STRIPE_SECRET_KEY');
 const STRIPE_WEBHOOK_SECRET = Deno.env.get('STRIPE_WEBHOOK_SECRET');
 
-// 0,50 € the croquette; the largest pack gives 10 more
+// 0,25 € the croquette; the largest pack gives 20 more
 const PACKS: Record<string, { croquettes: number; cents: number; label: string }> = {
-  small: { croquettes: 20, cents: 1000, label: '20 croquettes' },
-  medium: { croquettes: 50, cents: 2500, label: '50 croquettes' },
-  large: { croquettes: 110, cents: 5000, label: '110 croquettes (dont 10 offertes)' },
+  small: { croquettes: 40, cents: 1000, label: '40 croquettes' },
+  medium: { croquettes: 100, cents: 2500, label: '100 croquettes' },
+  large: { croquettes: 220, cents: 5000, label: '220 croquettes (dont 20 offertes)' },
 };
 
 const CORS = {
