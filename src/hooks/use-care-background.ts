@@ -9,7 +9,7 @@ import { onCarePushOpened, registerCarePush, unregisterCarePush } from '@/lib/ca
 import { buildCareSnapshot, CARE_WIDGET_PET_KEY, widgetPetId } from '@/widgets/care-snapshot';
 import { pushCareWidgets } from '@/widgets/care-widget-task';
 
-const ROUTES: Record<string, string> = { health: '/health', chat: '/chat', pet: '/pets', pets: '/pets' };
+const ROUTES: Record<string, string> = { health: '/health', chat: '/chat', pet: '/pets', pets: '/pets', home: '/' };
 
 // Signed in: registers the phone for reminders, opens the right screen when one is tapped,
 // and keeps the home-screen widgets in step with the pet followed (the one selected).

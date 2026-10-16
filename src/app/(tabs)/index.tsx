@@ -15,6 +15,7 @@ import { HealthBadge, HealthScoreSection } from '../../components/HealthScore';
 import { getPetHealthScore, type HealthScoreResult } from '../../lib/health-score';
 import { CareSubscription } from '../../components/CareSubscription';
 import { CommunityFeed } from '../../components/CommunityFeed';
+import { ChallengeCard } from '../../components/ChallengeCard';
 
 const STORE_URL = 'https://store.greatrascals.com/';
 
@@ -197,6 +198,13 @@ export default function HomeScreen() {
           ))}
         </View>
       </AnimatedCard>
+
+      {/* Today's challenge: a small thing to do with the pet, a new one each day */}
+      {pet && (
+        <AnimatedCard style={styles.plusSection} delay={215}>
+          <ChallengeCard pet={pet} language={language === 'fr' ? 'fr' : 'en'} colors={colors} />
+        </AnimatedCard>
+      )}
 
       {/* The game: a finished game unlocks day 7 of the weekly gifts */}
       <AnimatedCard style={styles.plusSection} delay={225}>
