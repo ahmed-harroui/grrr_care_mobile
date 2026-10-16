@@ -58,7 +58,7 @@ function TodayWidget({ snapshot }: { snapshot: CareSnapshot }) {
       <TextWidget text={`🩺 ${today.title}`} style={{ fontSize: 13, fontWeight: 'bold', color: WHITE }} maxLines={1} truncate="END" />
       {today.items.length === 0 ? (
         <FlexWidget style={{ flex: 1, width: 'match_parent', alignItems: 'center', justifyContent: 'center' }}>
-          <TextWidget text={today.empty} style={{ fontSize: 14, color: WHITE }} />
+          <TextWidget text={today.empty} style={{ fontSize: 13, color: WHITE, textAlign: 'center' }} maxLines={3} />
         </FlexWidget>
       ) : (
         today.items.map((item, index) => (

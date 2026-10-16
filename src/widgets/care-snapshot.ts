@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '@/lib/supabase';
 import { getPetHealthScore } from '@/lib/health-score';
+import { adviceLine, quietDay } from '@/widgets/variety';
 
 // What the GRRR Care home-screen widgets show, already in the user's language. Built from the
 // database for one pet, both by the app and by the widgets themselves every 30 minutes (app
@@ -125,7 +126,8 @@ export async function buildCareSnapshot(petId: string, language: Language, now =
         score: String(Math.round(ok.score)),
         label: ok.level === 'good' ? tx('Good health', 'Bonne santé') : ok.level === 'attention' ? tx('To watch', 'À surveiller') : tx('Action needed', 'À faire'),
         color: COLORS[ok.level],
-        advice: ok.nextSteps[0] ? ok.nextSteps[0].advice[language] : tx('Everything is up to date 🎉', 'Tout est à jour 🎉'),
+        // The three most useful tips by turns, or a small check when all is well
+        advice: adviceLine(ok.nextSteps.slice(0, 3).map((step) => step.advice[language]), language, pet.pet_name, now),
         next,
       }
     : {
@@ -145,7 +147,7 @@ export async function buildCareSnapshot(petId: string, language: Language, now =
     today: {
       title: tx(`${pet.pet_name}'s care`, `Les soins de ${pet.pet_name}`),
       items: items.slice(0, 3),
-      empty: tx('Nothing to do today ✨', "Rien de prévu aujourd'hui ✨"),
+      empty: quietDay(language, pet.pet_name, now),
     },
   };
 }
