@@ -103,10 +103,13 @@ export function HealthScreen() {
 
   // Opened from elsewhere with something to add (the game's "create a reminder")
   useEffect(() => {
-    if (params.add === 'reminder') {
-      openForm('reminder');
-      router.setParams({ add: undefined });
+    const add = params.add;
+    if (add === 'reminder') openForm('reminder');
+    if (add === 'vaccines' || add === 'meds' || add === 'visits') {
+      setActiveTab(add);
+      openForm(add, add === 'visits' ? { date: addDays(new Date(new Date().setHours(10, 0, 0, 0)), 1) } : {});
     }
+    if (add) router.setParams({ add: undefined });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.add]);
 

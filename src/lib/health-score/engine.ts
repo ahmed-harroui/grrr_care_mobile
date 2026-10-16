@@ -83,11 +83,15 @@ export function evaluateRule(rule: Rule, pet: PetForScore, data: HealthData, tod
       return value !== null && value !== undefined && value !== '' ? 1 : missing;
     }
     case 'review_when_active': {
+      // A treatment just started was prescribed at a visit: only one running for longer than the
+      // review period needs a visit since
+      const reviewFrom = now - rule.within_days * DAY;
       const active = matching(data, rule.source, rule.match).filter((r) => {
         const end = time(r.due);
-        return Number.isNaN(end) || end >= now;
+        const start = time(r.date);
+        return (Number.isNaN(end) || end >= now) && (Number.isNaN(start) || start <= reviewFrom);
       });
-      if (active.length === 0) return null; // nothing ongoing: nothing to review
+      if (active.length === 0) return null; // nothing ongoing for long: nothing to review
       const reviews = toRecords(data, rule.review_source).map((r) => time(r.date)).filter((t) => !Number.isNaN(t));
       if (reviews.length === 0) return 0;
       return fade((now - Math.max(...reviews)) / DAY - rule.within_days, rule.within_days / 2);
@@ -132,7 +136,12 @@ export function computeHealthScore(pet: PetForScore, data: HealthData, profiles:
       const ruleWeight = c.rules.filter((r) => r.score != null).reduce((s, r) => s + (r.rule.weight ?? 1), 0);
       return c.rules
         .filter((r) => r.score != null && r.score < 1)
-        .map((r) => ({ advice: r.rule.advice, gain: Math.round(((1 - r.score!) * (r.rule.weight ?? 1) / ruleWeight) * (c.category.weight / evaluatedWeight) * 100) }));
+        .map((r) => ({
+          advice: r.rule.advice,
+          gain: Math.round(((1 - r.score!) * (r.rule.weight ?? 1) / ruleWeight) * (c.category.weight / evaluatedWeight) * 100),
+          // What to add to meet it: a treatment to review is met by a vet visit
+          fix: r.rule.type === 'review_when_active' ? r.rule.review_source : r.rule.type === 'pet_field' ? ('profile' as const) : r.rule.source,
+        }));
     })
     .filter((s) => s.gain > 0)
     .sort((a, b) => b.gain - a.gain)

@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { HealthScoreResult } from '../lib/health-score';
 
 type Lang = 'en' | 'fr';
@@ -32,7 +32,7 @@ export function HealthBadge({ result, lang, colors }: { result: HealthScoreResul
 }
 
 /** Score bar, the top next steps and the last vet visit. Replaces the hard-coded placeholder. */
-export function HealthScoreSection({ result, lastVisit, lang, colors }: { result: HealthScoreResult | null; lastVisit: string | null; lang: Lang; colors: Colors }) {
+export function HealthScoreSection({ result, lastVisit, lang, colors, onFix }: { result: HealthScoreResult | null; lastVisit: string | null; lang: Lang; colors: Colors; onFix?: (fix: string) => void }) {
   const locale = lang === 'fr' ? 'fr-FR' : 'en-US';
   const message = !result ? null
     : result.status === 'no_data' ? TEXT.noData[lang]
@@ -53,7 +53,12 @@ export function HealthScoreSection({ result, lastVisit, lang, colors }: { result
               <View style={[styles.barFill, { backgroundColor: levelColor(result, colors), width: `${result.score}%` }]} />
             </View>
             {result.nextSteps.map((step, i) => (
-              <Text key={i} style={[styles.step, { color: colors.text }]}>→ {step.advice[lang]} <Text style={{ color: colors.textTertiary }}>(+{step.gain})</Text></Text>
+              <Pressable key={i} onPress={step.fix && onFix ? () => onFix(step.fix!) : undefined} accessibilityRole={step.fix && onFix ? 'button' : undefined}>
+                <Text style={[styles.step, { color: colors.text }]}>
+                  → {step.advice[lang]} <Text style={{ color: colors.textTertiary }}>(+{step.gain})</Text>
+                  {step.fix && onFix ? <Text style={{ color: colors.primary, fontWeight: '700' }}>  {lang === 'fr' ? 'Ajouter ›' : 'Add ›'}</Text> : null}
+                </Text>
+              </Pressable>
             ))}
             {result.profile.status === 'provisional' && <Text style={[styles.note, { color: colors.textTertiary }]}>{TEXT.provisional[lang]}</Text>}
           </>

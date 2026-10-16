@@ -152,7 +152,18 @@ export default function HomeScreen() {
           </View>
 
           {/* Health follow-up score, computed from the pet's records and its species/age profile */}
-          <HealthScoreSection result={health} lastVisit={summary?.lastVetVisit ?? null} lang={language} colors={colors} />
+          <HealthScoreSection
+            result={health}
+            lastVisit={summary?.lastVetVisit ?? null}
+            lang={language}
+            colors={colors}
+            // Each advice opens what fixes it: the right form of Health, or the pet's profile
+            onFix={fix => {
+              const add = { vaccinations: 'vaccines', vet_visits: 'visits', medications: 'meds' }[fix as string];
+              if (add) router.push({ pathname: '/(tabs)/health', params: { add } });
+              else router.push({ pathname: '/pet/[id]', params: { id: pet.id } });
+            }}
+          />
         </View>
       )}
 

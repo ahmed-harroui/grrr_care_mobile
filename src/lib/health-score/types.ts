@@ -96,5 +96,5 @@ export type HealthScoreResult =
       coverage: number;
       categories: CategoryResult[];
       /** The rules that would raise the score the most, best first. */
-      nextSteps: { advice: Text; gain: number }[];
+      nextSteps: { advice: Text; gain: number; fix?: RecordSource | 'profile' }[];
     };
