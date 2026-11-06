@@ -55,12 +55,12 @@ export function buildMapHtml({ userLocation }: Pick<PartnersMapViewProps, 'userL
     <!DOCTYPE html>
     <html>
     <head>
+      <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
       <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css" />
-      <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>
-      <style>
+      <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.js"></script>      <style>
         * { margin: 0; padding: 0; }
         html, body { width: 100%; height: 100%; }
         #map { width: 100%; height: 100%; }
@@ -102,8 +102,14 @@ export function buildMapHtml({ userLocation }: Pick<PartnersMapViewProps, 'userL
           insurance: ['🛡️', '#64748B', 'Assurance', 'Insurance'], food: ['🥗', '#84CC16', 'Alimentation', 'Food'],
         };
         const kind = c => KIND[c] || ['🐾', '#64748B', c, c];
-        const map = L.map('map').setView([data.center.lat, data.center.lon], data.user ? 13 : 12);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+        // maxZoom on the map itself: the groups of places need it, whichever map is drawn below
+        const map = L.map('map', { maxZoom: 19 }).setView([data.center.lat, data.center.lon], data.user ? 13 : 12);
+        // The map itself: Esri's street map. OpenStreetMap's own tile servers answer "Access blocked"
+        // to the app (a WebView sends no Referer), and CARTO now wants a key.
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+          attribution: 'Tiles © Esri — Esri, HERE, Garmin, © OpenStreetMap contributors',
+          maxZoom: 19,
+        }).addTo(map);
 
         // To the app: the web page that holds the iframe, or the phone app's WebView
         const send = message => {
